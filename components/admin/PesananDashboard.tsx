@@ -827,6 +827,23 @@ function ViewPesanan({
     selesai: orders.filter((o) => statusOf(o, steps.length) === "selesai").length,
   };
 
+  // Pesanan masuk dalam 7 hari terakhir (hari ini + 6 hari sebelumnya, WIB).
+  // Sebelumnya label KPI ini ditulis statis "+2 minggu ini" sehingga angkanya
+  // tidak pernah ikut berubah walau order bertambah.
+  const baruMingguIni = (() => {
+    const todayKey = dateKeyID(new Date()); // mis. 2026-09-25
+    if (!todayKey) return 0;
+    // Mulai dari tengah malam WIB hari ini, lalu mundur 6 hari — supaya batas
+    // jendela tidak ikut zona waktu perangkat yang membuka dashboard.
+    const cutoff = new Date(`${todayKey}T00:00:00+07:00`);
+    cutoff.setUTCDate(cutoff.getUTCDate() - 6);
+    const cutoffKey = dateKeyID(cutoff);
+    return orders.filter((o) => {
+      const key = dateKeyID(o.created_at);
+      return key !== "" && key >= cutoffKey;
+    }).length;
+  })();
+
   // Deadline terdekat dari semua pesanan aktif (belum selesai)
   const nextDeadline = orders
     .filter((o) => o.deadline && !o.is_done)
@@ -913,7 +930,7 @@ function ViewPesanan({
           <p className="pas-kpi-label text-[13px]">Total Pesanan</p>
           <div className="flex items-end gap-2.5 mt-2.5">
             <p className="pas-display pas-num text-[34px] leading-none">{stats.total}</p>
-            <span className="pas-delta mb-0.5">+2 minggu ini</span>
+            <span className="pas-delta mb-0.5">+{baruMingguIni} minggu ini</span>
           </div>
         </div>
         <div className="pas-card pas-kpi pas-bento-kpi p-4 sm:p-5">
