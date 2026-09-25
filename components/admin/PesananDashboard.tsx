@@ -4536,7 +4536,7 @@ function AddForm({
         <p className="pas-stencil text-[9px] text-[var(--pas-muted)]">Nomor Pesanan</p>
         <p className="text-[14px] mt-1 text-[var(--pas-muted)] leading-relaxed">
           Nomor order digenerate otomatis saat disimpan
-          <span className="text-[var(--pas-muted)]"> (format: MNRYYMMDDXXXX)</span>
+          <span className="text-[var(--pas-muted)]"> (format: VSPYYMMDDXXXX)</span>
         </p>
       </div>
       <label className="block">

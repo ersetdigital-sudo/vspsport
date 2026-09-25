@@ -679,7 +679,7 @@ function AddForm({
         <p className="pas-stencil text-[9px] text-[var(--pas-muted)]">Nomor Maklon</p>
         <p className="text-[14px] mt-1 text-[var(--pas-muted)] leading-relaxed">
           Nomor maklon digenerate otomatis saat disimpan
-          <span className="text-[var(--pas-muted)]"> (format: MKL YYMMDD XXXX)</span>
+          <span className="text-[var(--pas-muted)]"> (format: MKLYYMMDDXXXX)</span>
         </p>
       </div>
       <label className="block">
