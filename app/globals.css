@@ -2184,11 +2184,6 @@
   position: sticky; top: 0; height: 100vh;
   display: flex; flex-direction: column; padding: 26px 16px 16px;
 }
-/* strip gradient oranye→merah di tepi kiri (mockup .side::before) */
-.pas-side::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-  background: linear-gradient(180deg, #F2762A, #C0392B);
-}
 .pas-side .pas-display { color: #FFFFFF !important; }
 .pas-side .pas-stencil { color: rgba(255,255,255,.7) !important; }
 .pas-navlink {
