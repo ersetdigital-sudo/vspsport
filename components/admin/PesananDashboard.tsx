@@ -295,6 +295,36 @@ function deadlineStatus(deadline: string | null, isDone: boolean): { level: "nor
   return { level: "normal", diffDays };
 }
 
+/**
+ * Keterangan deadline yang tampil sebagai badge di kolom STATUS.
+ *
+ * Sebelumnya teks ini dicetak di bawah tanggal deadline ("(H-2)"), sehingga
+ * kolom Deadline punya dua baris dan baris keterangannya terlihat seperti
+ * tanggal kedua. Sekarang pindah ke sebelah badge status.
+ *
+ * Null = tidak perlu ditampilkan (deadline masih jauh / order sudah selesai).
+ */
+function deadlineNote(
+  level: "normal" | "approaching" | "warning" | "critical" | "overdue" | null,
+  diffDays: number
+): { text: string; cls: "warn" | "danger" } | null {
+  switch (level) {
+    case "overdue": {
+      // diffDays <= 0 semuanya berarti sudah lewat; 0 = lewat hari ini.
+      const late = Math.abs(diffDays);
+      return { text: late > 0 ? `Lewat ${late} hari` : "Lewat deadline", cls: "danger" };
+    }
+    case "critical":
+      return { text: "H-1", cls: "danger" };
+    case "warning":
+      return { text: "H-2", cls: "warn" };
+    case "approaching":
+      return { text: "H-3", cls: "warn" };
+    default:
+      return null;
+  }
+}
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -1089,6 +1119,7 @@ function ViewPesanan({
               const pct = o.pct;
               const ini = initials(o.customer_name);
               const dlStatus = deadlineStatus(o.deadline, o.is_done);
+              const dlNote = deadlineNote(dlStatus.level, dlStatus.diffDays);
               return (
                 <tr key={o.id} onClick={() => openDetail(o.id)}>
                   <td>
@@ -1145,17 +1176,18 @@ function ViewPesanan({
                           )}
                           {formatDate(o.deadline)}
                         </span>
-                        {dlStatus.level === "approaching" && <span className="block text-[11px] mt-0.5 opacity-80">(H-3)</span>}
-                        {dlStatus.level === "warning" && <span className="block text-[11px] mt-0.5 opacity-80">(H-2)</span>}
-                        {dlStatus.level === "critical" && <span className="block text-[11px] mt-0.5 opacity-80">(H-1)</span>}
-                        {dlStatus.level === "overdue" && <span className="block text-[11px] mt-0.5 opacity-80">(lewat {Math.abs(dlStatus.diffDays)} hari)</span>}
                       </span>
                     ) : (
                       <span className="text-[var(--pas-muted)]">-</span>
                     )}
                   </td>
                   <td>
-                    <span className={`pas-pill ${st}`}>{FILTER_LABEL[st]}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`pas-pill ${st}`}>{FILTER_LABEL[st]}</span>
+                      {dlNote && (
+                        <span className={`pas-pill ${dlNote.cls}`}>{dlNote.text}</span>
+                      )}
+                    </div>
                   </td>
                   <td className="text-right flex items-center gap-1 justify-end">
                     <button
@@ -1205,6 +1237,7 @@ function ViewPesanan({
           const pct = o.pct;
           const ini = initials(o.customer_name);
           const dlStatus = deadlineStatus(o.deadline, o.is_done);
+          const dlNote = deadlineNote(dlStatus.level, dlStatus.diffDays);
           const stageName = steps[o.current_step - 1]?.name || `Tahap ${o.current_step}`;
           return (
             <div
@@ -1244,7 +1277,12 @@ function ViewPesanan({
               {/* Baris 1: Nomor pesanan + badge status */}
               <div className="flex items-center justify-between pr-10">
                 <p className="font-bold text-[16px] pas-num">{o.id}</p>
-                <span className={`pas-pill ${st}`}>{FILTER_LABEL[st]}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className={`pas-pill ${st}`}>{FILTER_LABEL[st]}</span>
+                  {dlNote && (
+                    <span className={`pas-pill ${dlNote.cls}`}>{dlNote.text}</span>
+                  )}
+                </span>
               </div>
 
               {/* Baris 2: Avatar + Nama customer + Jumlah pcs */}
@@ -1295,10 +1333,6 @@ function ViewPesanan({
                       }`} />
                     )}
                     Deadline: {formatDate(o.deadline)}
-                    {dlStatus.level === "approaching" && <span className="text-[11px] ml-1 opacity-80">(H-3)</span>}
-                    {dlStatus.level === "warning" && <span className="text-[11px] ml-1 opacity-80">(H-2)</span>}
-                    {dlStatus.level === "critical" && <span className="text-[11px] ml-1 opacity-80">(H-1)</span>}
-                    {dlStatus.level === "overdue" && <span className="text-[11px] ml-1 opacity-80">(lewat {Math.abs(dlStatus.diffDays)} hari)</span>}
                   </p>
                 ) : (
                   <p className="text-[12px] text-[var(--pas-muted)]">Deadline: -</p>
