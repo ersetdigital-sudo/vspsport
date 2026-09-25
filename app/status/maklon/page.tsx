@@ -36,7 +36,6 @@ type MaklonProduct = { name?: string; sizes?: { size?: string; qty?: number }[] 
 type MaklonOrderRow = {
   order_number: string;
   customer_name: string;
-  customer_city: string | null;
   product_type: string | null;
   quantity: number | null;
   sizes: string | null;
@@ -57,7 +56,6 @@ type MaklonOrderRow = {
 const SAFE_COLUMNS = [
   "order_number",
   "customer_name",
-  "customer_city",
   "product_type",
   "quantity",
   "sizes",
