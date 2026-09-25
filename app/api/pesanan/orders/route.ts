@@ -1,9 +1,47 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
 import { generateOrderNumber } from "@/lib/order-number";
-import { isOrderCompleted, progressPercentFromStatus, stepFromStatus } from "@/lib/order-status";
+import {
+  DONE_STATUS,
+  isOrderCompleted,
+  progressPercentFromStatus,
+  stepFromStatus,
+} from "@/lib/order-status";
 
-function mapOrder(row: any) {
+/**
+ * Waktu tuntas tiap order diambil dari `order_status_history`, bukan kolom baru.
+ *
+ * Baris history berstatus "selesai" sudah ditulis setiap kali tahap terakhir
+ * disimpan (lihat route status), jadi tidak perlu migrasi kolom tambahan dan
+ * order yang tuntas sebelum fitur ini ada pun ikut terhitung. Baris diurut
+ * menurun supaya pengambilan pertama per order = kejadian paling akhir (penting
+ * untuk order yang pernah dibuka ulang lalu dituntaskan lagi).
+ */
+async function fetchDoneAt(supabase: any, orderIds: string[]) {
+  const latest = new Map<string, string>();
+  if (orderIds.length === 0) return latest;
+
+  const { data, error } = await supabase
+    .from("order_status_history")
+    .select("order_id, created_at")
+    .eq("status", DONE_STATUS)
+    .in("order_id", orderIds)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    // Badge "bulan ini" cukup tampil 0 kalau riwayat tidak terbaca — jangan
+    // sampai kegagalan di sini bikin seluruh daftar pesanan gagal dimuat.
+    console.error("Gagal membaca riwayat selesai:", error.message);
+    return latest;
+  }
+
+  for (const row of data || []) {
+    if (!latest.has(row.order_id)) latest.set(row.order_id, row.created_at);
+  }
+  return latest;
+}
+
+function mapOrder(row: any, doneAt: string | null = null) {
   const hasTracking = !!(row.tracking_number && row.courier);
   const step = stepFromStatus(row.current_status);
   const pct = progressPercentFromStatus(row.current_status, hasTracking);
@@ -29,6 +67,7 @@ function mapOrder(row: any) {
     is_done: isOrderCompleted(row.current_status) || (step === 11 && hasTracking),
     deadline: row.deadline || null,
     created_at: row.created_at,
+    done_at: doneAt,
     pct,
   };
 }
@@ -48,7 +87,15 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ orders: (data || []).map(mapOrder) });
+  const rows = data || [];
+  const doneAtByUuid = await fetchDoneAt(
+    supabase,
+    rows.map((row: any) => row.id)
+  );
+
+  return NextResponse.json({
+    orders: rows.map((row: any) => mapOrder(row, doneAtByUuid.get(row.id) || null)),
+  });
 }
 
 export async function POST(request: Request) {

@@ -65,6 +65,8 @@ type OrderData = {
   is_done: boolean;
   deadline: string | null;
   created_at: string;
+  /** Waktu order tuntas (dari riwayat tahap "selesai"), null kalau belum selesai. */
+  done_at: string | null;
   pct: number;
 };
 
@@ -844,6 +846,16 @@ function ViewPesanan({
     }).length;
   })();
 
+  // Pesanan yang tuntas BULAN INI — dihitung dari waktu tuntasnya, bukan dari
+  // tanggal order dibuat: order bulan lalu yang baru selesai sekarang tetap
+  // terhitung bulan ini. Order lama tanpa riwayat selesai tidak ikut dihitung.
+  const monthKeyNow = monthKeyID(new Date());
+  const selesaiBulanIni = monthKeyNow
+    ? orders.filter(
+        (o) => o.is_done && o.done_at && monthKeyID(o.done_at) === monthKeyNow
+      ).length
+    : 0;
+
   // Deadline terdekat dari semua pesanan aktif (belum selesai)
   const nextDeadline = orders
     .filter((o) => o.deadline && !o.is_done)
@@ -862,6 +874,21 @@ function ViewPesanan({
   const hasWarning = orders.some(
     (o) => !o.is_done && o.deadline && (deadlineStatus(o.deadline, false).level === "approaching" || deadlineStatus(o.deadline, false).level === "warning" || deadlineStatus(o.deadline, false).level === "critical")
   );
+
+  // Badge "Sedang Produksi" mengikuti kondisi deadline order aktif. Sebelumnya
+  // tulisan tetap "on track" yang tidak melihat data sama sekali.
+  const overdueCount = orders.filter(
+    (o) =>
+      !o.is_done &&
+      o.deadline &&
+      deadlineStatus(o.deadline, false).level === "overdue"
+  ).length;
+  const produksiBadge =
+    overdueCount > 0
+      ? { text: `${overdueCount} lewat deadline`, cls: "pas-delta bad mb-0.5" }
+      : deadlineAlertCount > 0
+        ? { text: `${deadlineAlertCount} mendekati deadline`, cls: "pas-delta ok mb-0.5" }
+        : { text: "on track", cls: "pas-delta good mb-0.5" };
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
@@ -939,7 +966,7 @@ function ViewPesanan({
             <p className="pas-display pas-num text-[30px] leading-none">
               {stats.produksi}
             </p>
-            <span className="pas-delta ok mb-0.5">on track</span>
+            <span className={produksiBadge.cls}>{produksiBadge.text}</span>
           </div>
         </div>
         <div className="pas-card pas-kpi pas-bento-kpi p-4 sm:p-5">
@@ -975,7 +1002,7 @@ function ViewPesanan({
           <p className="text-[13px] text-[var(--pas-muted)]">Selesai</p>
           <div className="flex items-end gap-2.5 mt-2.5">
             <p className="pas-display pas-num text-[30px] leading-none">{stats.selesai}</p>
-            <span className="pas-delta good mb-0.5">bulan ini</span>
+            <span className="pas-delta good mb-0.5">{selesaiBulanIni} bulan ini</span>
           </div>
         </div>
       </section>
