@@ -16,7 +16,6 @@ function mapOrder(row: any) {
     id: row.order_number,
     customer_name: row.customer_name,
     customer_phone: row.customer_phone,
-    customer_city: row.customer_city || "",
     product_name: row.product_type || "",
     quantity: row.quantity ? `${row.quantity} pcs` : "-",
     material: row.material || "",
@@ -69,7 +68,6 @@ export async function POST(request: Request) {
     id,
     customer_name,
     customer_phone,
-    customer_city,
     product_name,
     quantity,
     material,
@@ -118,7 +116,6 @@ export async function POST(request: Request) {
     wo_photos: Array.isArray(wo_photos) ? wo_photos : [],
     products: Array.isArray(products) ? products : [],
   };
-  if (customer_city) insertData.customer_city = customer_city;
   if (material) insertData.material = material;
   if (deadline) insertData.deadline = deadline;
   if (created_at) insertData.created_at = created_at;

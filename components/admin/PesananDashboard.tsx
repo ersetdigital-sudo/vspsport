@@ -49,7 +49,6 @@ type OrderData = {
   id: string;
   customer_name: string;
   customer_phone: string;
-  customer_city: string;
   product_name: string;
   quantity: string;
   material: string;
@@ -838,13 +837,7 @@ function ViewPesanan({
       if (filter !== "all" && statusOf(o, steps.length) !== filter) return false;
       if (!query) return true;
       const s = (
-        o.id +
-        " " +
-        o.customer_name +
-        " " +
-        o.customer_city +
-        " " +
-        o.product_name
+        o.id + " " + o.customer_name + " " + o.product_name
       ).toLowerCase();
       return s.includes(query.toLowerCase());
     })
