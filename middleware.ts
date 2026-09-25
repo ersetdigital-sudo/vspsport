@@ -76,6 +76,6 @@ export const config = {
      * - _next/static, _next/image (aset internal)
      * - favicon & aset publik lain
      */
-    "/((?!_next/static|_next/image|favicon.ico|favicon.png|logo.svg|logo-menara.png|logo-vsp.png|logo-vsp-mark.png|opengraph-image).*)",
+    "/((?!_next/static|_next/image|favicon.ico|favicon.png|logo.svg|logo-vsp.png|logo-vsp-mark.png|opengraph-image).*)",
   ],
 };

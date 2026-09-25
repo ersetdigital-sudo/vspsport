@@ -11,9 +11,9 @@ Order intake → 11-stage production pipeline → automated WhatsApp updates →
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres_%2B_RLS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)](https://menarasport.vercel.app)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)](https://vsp-sport.vercel.app)
 
-[**Live demo**](https://menarasport.vercel.app) · [Customer tracking](https://menarasport.vercel.app/track)
+[**Live demo**](https://vsp-sport.vercel.app) · [Customer tracking](https://vsp-sport.vercel.app/track)
 
 </div>
 
@@ -187,4 +187,4 @@ Shipped to production and in daily operational use. The platform deliberately co
 
 ## Author
 
-Built by **Your Name** <!-- TODO: ganti dengan nama kamu --> · [GitHub](https://github.com/ersetdigital-sudo) · [Live demo](https://menarasport.vercel.app)
+Built by **Your Name** <!-- TODO: ganti dengan nama kamu --> · [GitHub](https://github.com/ersetdigital-sudo) · [Live demo](https://vsp-sport.vercel.app)
