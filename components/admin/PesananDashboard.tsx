@@ -3265,20 +3265,39 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
     setDays(next.join(","));
   };
 
-  const saveSettings = async () => {
+  // return true kalau settings benar-benar tersimpan ke database
+  const saveSettings = async (enabledValue?: boolean): Promise<boolean> => {
+    const nextEnabled = enabledValue ?? enabled;
     setSaving(true);
     try {
       const res = await fetch("/api/admin/settings/deadline-notif", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled, time, days, phones: activePhones.join(",") }),
+        body: JSON.stringify({ enabled: nextEnabled, time, days, phones: activePhones.join(",") }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.error || "Gagal menyimpan"); setSaving(false); return; }
+      if (!res.ok) { showToast(data.error || "Gagal menyimpan"); return false; }
+      setEnabled(nextEnabled);
       showToast("Pengaturan tersimpan");
       setIsSaved(true);
-    } catch { showToast("Gagal menyimpan"); }
+      return true;
+    } catch { showToast("Gagal menyimpan"); return false; }
     finally { setSaving(false); }
+  };
+
+  /**
+   * Switch harus ikut tersimpan, bukan cuma state lokal.
+   * Dulu onClick-nya cuma setEnabled(!enabled), jadi setelah refresh notifikasi
+   * balik "off" dan tombol "Test kirim" (disabled={!enabled}) ikut mati.
+   * Mode edit (isSaved=false) dibiarkan: perubahan lain masih belum tersimpan,
+   * biar tombol "Simpan pengaturan" yang mem-*commit* semuanya sekaligus.
+   */
+  const toggleEnabled = async () => {
+    const next = !enabled;
+    setEnabled(next);
+    if (!isSaved) return;
+    const ok = await saveSettings(next);
+    if (!ok) setEnabled(!next); // gagal simpan → kembalikan tampilan switch
   };
 
   const testNotif = async () => {
@@ -3378,7 +3397,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
           <div className="relative grid gap-9 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <div className="flex items-start gap-4">
-                <button className={`n-switch mt-0.5 ${enabled ? "on" : ""}`} onClick={() => setEnabled(!enabled)} aria-label="Aktifkan notifikasi deadline"><span /></button>
+                <button className={`n-switch mt-0.5 ${enabled ? "on" : ""}`} onClick={toggleEnabled} disabled={saving} aria-label="Aktifkan notifikasi deadline"><span /></button>
                 <div>
                   <p className="text-[20px] font-semibold text-white" style={{ fontFamily: 'var(--font-geist),system-ui,sans-serif' }}>Notifikasi Deadline</p>
                   <p className="mt-1.5 flex items-center gap-2 text-[13px]" style={{ color: "rgba(255,255,255,.7)" }}>
