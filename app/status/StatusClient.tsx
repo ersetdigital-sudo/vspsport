@@ -772,7 +772,7 @@ export default function StatusClient({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 rounded-full bg-[#F2762A] px-6 py-3 text-center text-[14px] font-semibold text-black hover:bg-[#F2762A] transition"
+                    className="flex-1 rounded-full bg-[#F2762A] px-6 py-3 text-center text-[14px] font-semibold text-white hover:bg-[#F2762A] transition"
                   >
                     Lacak Pengiriman
                   </a>
@@ -800,7 +800,7 @@ export default function StatusClient({
                   href={waLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-black hover:bg-[#F2762A] transition hover:-translate-y-px"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-white hover:bg-[#F2762A] transition hover:-translate-y-px"
                 >
                   Chat CS via WhatsApp
                 </a>
@@ -819,7 +819,7 @@ export default function StatusClient({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-6 py-3.5 text-[15px] font-semibold text-black"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-6 py-3.5 text-[15px] font-semibold text-white"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 18, height: 18, flex: "none" }} aria-hidden="true">
                 <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.4-.2-2.7.7.7-2.6-.2-.4A8 8 0 0 1 12 4z"></path>

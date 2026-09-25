@@ -1707,7 +1707,7 @@
 
 .trk-btn-accent {
   background: #F2762A;
-  color: #14100E;
+  color: #FFFFFF;
   border-radius: 14px;
   font-family: var(--font-archivo), "Archivo", sans-serif;
   font-weight: 800;
@@ -2027,7 +2027,7 @@
   color: #F2762A;
 }
 .dpo-dot.now {
-  color: #1B1512;
+  color: #FFFFFF;
   background: #F2762A;
   border-color: #F2762A;
   box-shadow: 0 0 22px rgba(242,118,42,.55);
@@ -2064,7 +2064,7 @@
   color: rgba(242,118,42,.85);
   border: 1px solid rgba(242,118,42,.22);
 }
-.dpo-chip-now { background: #F2762A; color: #1B1512; }
+.dpo-chip-now { background: #F2762A; color: #FFFFFF; }
 .dpo-chip-next {
   background: rgba(255,255,255,.06);
   color: #A29086;

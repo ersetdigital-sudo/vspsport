@@ -470,7 +470,7 @@ export default async function MaklonStatusPage({
               href={csHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-black transition hover:-translate-y-px hover:bg-[#F2762A] sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-px hover:bg-[#F2762A] sm:w-auto"
             >
               Chat CS
             </a>
