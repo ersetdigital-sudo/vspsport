@@ -74,8 +74,12 @@ export const config = {
     /*
      * Semua path kecuali:
      * - _next/static, _next/image (aset internal)
-     * - favicon & aset publik lain
+     * - favicon, ikon app, & aset publik lain
+     *
+     * Pengecualian ini bukan cuma soal header: tiap request yang lolos matcher
+     * memanggil Supabase `getUser()`. Tanpa daftar ini, tiap kali browser minta
+     * favicon/logo kita bayar satu round-trip ke Supabase tanpa guna.
      */
-    "/((?!_next/static|_next/image|favicon.ico|favicon.png|logo.svg|logo-vsp.png|logo-vsp-mark.png|opengraph-image).*)",
+    "/((?!_next/static|_next/image|favicon.ico|favicon.png|icon.png|apple-icon.png|logo.svg|logo-vsp.png|logo-vsp-mark.png|opengraph-image).*)",
   ],
 };
