@@ -1079,7 +1079,10 @@ function DetailSheet({
   return (
     <div className="pas-sheet open">
       <div className="pas-veil" onClick={onClose} />
-      <div className="pas-panel p-0" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Jangan pakai height:100% - di layar <=640px .pas-panel di-set top:8%,
+          height:100% bikin panel kepanjangan 8% ke bawah sehingga footer tombol
+          Simpan/Selesai keluar dari layar dan tak bisa di-scroll. */}
+      <div className="pas-panel p-0" style={{ display: "flex", flexDirection: "column" }}>
         {/* TOPBAR */}
         <div
           className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3.5 border-b border-[var(--pas-line)]"

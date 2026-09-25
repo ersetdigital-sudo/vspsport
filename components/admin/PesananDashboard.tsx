@@ -3784,7 +3784,11 @@ function DetailSheet({
   return (
     <div className="pas-sheet open">
       <div className="pas-veil" onClick={onClose} />
-      <div className="pas-panel p-0" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Jangan pakai height:100% - di layar <=640px .pas-panel di-set top:8%,
+          height:100% bikin panel kepanjangan 8% ke bawah sehingga footer tombol
+          Simpan/Selesai keluar dari layar dan tak bisa di-scroll. Biarkan top+bottom
+          CSS yang menentukan tinggi panel. */}
+      <div className="pas-panel p-0" style={{ display: "flex", flexDirection: "column" }}>
         {/* ── TOPBAR ── */}
         <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(245,245,244,.85)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
           <button className="w-9 h-9 rounded-[10px] border border-[var(--pas-line)] bg-[var(--pas-surface)] grid place-items-center text-[var(--pas-muted)] hover:text-[var(--pas-ink-1)] hover:border-[rgba(40,25,18,.22)] transition shrink-0" onClick={onClose} aria-label="Kembali">
