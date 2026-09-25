@@ -380,11 +380,7 @@ export default function MaklonDashboard() {
                           <td>
                             <div className="flex items-center gap-2.5">
                               <span className="pas-avatar">{ini}</span>
-                              <span>
-                                {o.customer_name}
-                                <br />
-                                <span className="text-[12.5px] text-[var(--pas-muted)]">{o.customer_city}</span>
-                              </span>
+                              <span>{o.customer_name}</span>
                             </div>
                           </td>
                           <td className="text-[var(--pas-muted)]">{o.product_name}</td>
@@ -438,7 +434,6 @@ export default function MaklonDashboard() {
                           <span className="pas-bento-avatar">{ini}</span>
                           <div className="min-w-0">
                             <p className="text-[14px] font-medium truncate">{o.customer_name}</p>
-                            <p className="text-[12px] text-[var(--pas-muted)] truncate">{o.customer_city}</p>
                           </div>
                         </div>
                         <p className="text-[14px] font-semibold pas-num shrink-0 ml-3">{o.quantity} pcs</p>

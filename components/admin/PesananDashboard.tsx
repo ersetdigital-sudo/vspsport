@@ -1561,7 +1561,7 @@ function ViewKirim({
                 <div>
                   <p className="font-semibold pas-num">{o.id}</p>
                   <p className="text-[13px] text-[var(--pas-muted)] mt-0.5">
-                    {o.customer_name} - {o.customer_city} - {o.customer_phone}
+                    {o.customer_name} - {o.customer_phone}
                   </p>
                 </div>
                 <span className={`pas-pill ${statusOf(o, steps.length)}`}>
