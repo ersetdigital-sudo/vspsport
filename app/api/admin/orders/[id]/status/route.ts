@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
 import { ORDER_STATUS_LIST, type OrderStatus } from "@/lib/types";
-import { STATUS_TO_STAGE } from "@/lib/order-status";
+import { statusToStepMap } from "@/lib/order-status";
+import { loadStepOrder } from "@/lib/step-order-server";
 import {
   triggerStageNotification,
   type NotificationTriggerStatus,
@@ -82,10 +83,14 @@ export async function PATCH(
       );
     }
 
-    const newStage = STATUS_TO_STAGE[status] ?? null;
+    // Nomor tahap mengikuti URUTAN di tabel `production_steps` (lihat
+    // lib/step-order.ts) — bukan urutan bawaan di kode — supaya dashboard,
+    // halaman customer, dan pesan WhatsApp menunjuk tahap yang sama.
+    const stageMap = statusToStepMap(await loadStepOrder(supabase));
+    const newStage = stageMap[status] ?? null;
     const previousStage =
       existing.current_stage ??
-      STATUS_TO_STAGE[existing.current_status] ??
+      stageMap[existing.current_status] ??
       null;
 
     // 2. Update order — tersimpan apa pun hasil kirim WA (tanpa rollback).

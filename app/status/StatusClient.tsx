@@ -20,6 +20,7 @@ import {
 } from "@/lib/order-status";
 import { formatShortDateTimeID } from "@/lib/format-date";
 import { optimizeImageUrl } from "@/lib/cloudinary";
+import { resolveStepOrder, type StepOrder } from "@/lib/step-order";
 
 const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 const SPIN_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/></svg>';
@@ -60,9 +61,9 @@ function normalizeStepName(name: string): string {
  * "Tahap 3 / 9" (27%) untuk pesanan yang di dashboard sudah "tahap 4 / 11"
  * (36%). Tabel `production_steps` sekarang hanya menentukan LABEL tahap.
  */
-function stepIndexFromStatus(status: string): number {
-  if (isOrderCompleted(status)) return TOTAL_STAGES;
-  return stepFromStatus(status);
+function stepIndexFromStatus(status: string, order: StepOrder): number {
+  if (isOrderCompleted(status)) return order.length;
+  return stepFromStatus(status, order);
 }
 
 /**
@@ -193,7 +194,7 @@ export default function StatusClient({
   // Animate progress counter
   useEffect(() => {
     if (!order || !loaded) return;
-    const stepIdx = stepIndexFromStatus(order.current_status);
+    const stepIdx = stepIndexFromStatus(order.current_status, resolveStepOrder(steps));
     const hasTracking = !!(order.tracking_number && order.courier);
     const pct = getProgress(stepIdx, hasTracking);
 
@@ -397,7 +398,11 @@ export default function StatusClient({
   }
 
   // Render order details
-  const step = stepIndexFromStatus(order.current_status);
+  // Nomor tahap mengikuti URUTAN di tabel `production_steps` (lihat
+  // lib/step-order.ts), jadi penanda "sedang berjalan" selalu jatuh di baris
+  // yang namanya sama dengan status pesanan — walau urutannya digeser admin.
+  const stepOrder = resolveStepOrder(steps);
+  const step = stepIndexFromStatus(order.current_status, stepOrder);
   const isOrderDone = isOrderCompleted(order.current_status);
   const totalSteps = TOTAL_STAGES;
   const hasTracking = !!(order.tracking_number && order.courier);

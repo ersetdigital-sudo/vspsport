@@ -7,6 +7,7 @@ import {
   progressPercentFromStatus,
   stepFromStatus,
 } from "@/lib/order-status";
+import { loadStepOrder, type StepOrder } from "@/lib/step-order-server";
 
 /**
  * Waktu tuntas tiap order diambil dari `order_status_history`, bukan kolom baru.
@@ -41,10 +42,12 @@ async function fetchDoneAt(supabase: any, orderIds: string[]) {
   return latest;
 }
 
-function mapOrder(row: any, doneAt: string | null = null) {
+function mapOrder(row: any, doneAt: string | null = null, stepOrder?: StepOrder) {
   const hasTracking = !!(row.tracking_number && row.courier);
-  const step = stepFromStatus(row.current_status);
-  const pct = progressPercentFromStatus(row.current_status, hasTracking);
+  const step = stepFromStatus(row.current_status, stepOrder);
+  // Persentase dihitung dari NOMOR tahap pada urutan yang berlaku, supaya sama
+  // dengan angka "Tahap x dari 11" di halaman customer.
+  const pct = progressPercentFromStatus(row.current_status, hasTracking, stepOrder);
   return {
     id: row.order_number,
     customer_name: row.customer_name,
@@ -86,6 +89,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const stepOrder = await loadStepOrder(supabase);
   const rows = data || [];
   const doneAtByUuid = await fetchDoneAt(
     supabase,
@@ -93,7 +97,7 @@ export async function GET() {
   );
 
   return NextResponse.json({
-    orders: rows.map((row: any) => mapOrder(row, doneAtByUuid.get(row.id) || null)),
+    orders: rows.map((row: any) => mapOrder(row, doneAtByUuid.get(row.id) || null, stepOrder)),
   });
 }
 
@@ -139,6 +143,9 @@ export async function POST(request: Request) {
     }
   }
 
+  // Tahap awal pesanan baru = tahap pertama pada urutan produksi yang berlaku.
+  const stepOrder = await loadStepOrder(supabase);
+
   const qtyNum = parseInt(quantity, 10);
 
   const insertData: Record<string, any> = {
@@ -148,7 +155,7 @@ export async function POST(request: Request) {
     product_type: product_name || "",
     quantity: isNaN(qtyNum) ? 1 : qtyNum,
     sizes: sizes || "",
-    current_status: "desain",
+    current_status: stepOrder[0],
     current_stage: 1,
     design_photos: design_photos || [],
     wo_photos: Array.isArray(wo_photos) ? wo_photos : [],
@@ -168,5 +175,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ order: mapOrder(data) }, { status: 201 });
+  return NextResponse.json({ order: mapOrder(data, null, stepOrder) }, { status: 201 });
 }

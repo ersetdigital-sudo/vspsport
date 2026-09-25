@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getBrand, getOperationalHours } from "@/lib/queries";
 import { DEFAULT_PRODUCTS, productFamily } from "@/lib/product-options";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_LIST } from "@/lib/types";
+import { ORDER_STATUS_LABELS } from "@/lib/types";
+import { loadStepOrder } from "@/lib/step-order-server";
 import { formatWhatsAppDisplay, waMeUrl } from "@/lib/wa";
 
 // Isi halaman dibaca per request: nama toko, nomor WhatsApp, dan jam operasional
@@ -38,7 +39,14 @@ const FAMILY_INFO: Record<string, { unit: string }> = {
  * ulang di berkas ini.
  */
 export default async function HomePage() {
-  const [brand, hours] = await Promise.all([getBrand(), getOperationalHours()]);
+  // Urutan tahap dibaca dari tabel `production_steps` (bukan daftar di kode),
+  // supaya bagian "Alur produksi" di landing page ikut saat admin menggeser
+  // urutan di menu Pengaturan.
+  const [brand, hours, stepOrder] = await Promise.all([
+    getBrand(),
+    getOperationalHours(),
+    loadStepOrder(),
+  ]);
 
   const waHref = waMeUrl(
     brand.whatsappNumber,
@@ -49,7 +57,7 @@ export default async function HomePage() {
     family,
     items: DEFAULT_PRODUCTS.filter((p) => productFamily(p) === family),
   }));
-  const stages = ORDER_STATUS_LIST.map((s) => ORDER_STATUS_LABELS[s] ?? s);
+  const stages = stepOrder.map((s) => ORDER_STATUS_LABELS[s] ?? s);
 
   return (
     <div className="trk-bg min-h-screen">

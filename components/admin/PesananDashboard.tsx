@@ -36,13 +36,38 @@ const DEFAULT_STEPS: StepRow[] = ORDER_STATUS_LIST.map((status, index) => ({
   position: index + 1,
 }));
 
-const LANES = [
-  { name: "Desain & Layout", from: 1, to: 2 },
-  { name: "Profing & Cetak", from: 3, to: 4 },
-  { name: "Press & Potong", from: 5, to: 6 },
-  { name: "Jahit & Finishing", from: 7, to: 8 },
-  { name: "QC & Packing", from: 9, to: 10 },
-  { name: "Kirim", from: 11, to: 11 },
+/**
+ * Fase papan produksi: tahap dikelompokkan 2-2 MENGIKUTI URUTAN yang berlaku
+ * (tabel `production_steps`, lihat lib/step-order.ts). Label fase jadi tidak
+ * bisa basi saat admin menggeser urutan di menu Pengaturan — tidak ada nama fase
+ * yang ditulis mati di sini. Fase terakhir berdiri sendiri (tahap pengiriman).
+ */
+function buildLanes(steps: StepRow[]) {
+  const list = steps.length > 0 ? steps : DEFAULT_STEPS;
+  const lanes: { key: string; name: string; from: number; to: number }[] = [];
+  for (let i = 0; i < list.length; i += 2) {
+    const names = [list[i]?.name, list[i + 1]?.name].filter(Boolean).join(" & ");
+    lanes.push({
+      key: `lane-${lanes.length + 1}`,
+      name: names || `Tahap ${i + 1}`,
+      from: i + 1,
+      to: Math.min(i + 2, list.length),
+    });
+  }
+  return lanes;
+}
+
+/**
+ * Warna fase. Tema cuma punya 4 warna fase, jadi dipakai berulang kalau fasenya
+ * lebih banyak. Sebelumnya warna diambil dari NAMA fase yang ditulis mati
+ * (`LANE_KEYS` cuma 4 sementara fasenya 6), sehingga fase ke-5 dan ke-6 kehilangan
+ * warnanya sekaligus tidak bisa jadi sasaran drag & drop.
+ */
+const LANE_COLOR_CYCLE = [
+  "var(--lane-desain)",
+  "var(--lane-produksi)",
+  "var(--lane-finishing)",
+  "var(--lane-kirim)",
 ];
 
 type OrderData = {
@@ -621,8 +646,20 @@ export default function PesananDashboard() {
           {currentView === "jadwal" && <ViewJadwal orders={orders} openDetail={setOpenId} steps={steps} onMoved={fetchOrders} showToast={showToast} />}
           {currentView === "kirim" && <ViewKirim orders={orders} openDetail={setOpenId} steps={steps} />}
           {currentView === "customer" && <ViewCustomer orders={orders} onSelectCustomer={setOpenCustomerKey} steps={steps} />}
-          {currentView === "laporan" && <ViewLaporan orders={orders} />}
-          {currentView === "setting" && <ViewSetting showToast={showToast} steps={steps} onStepsSaved={fetchSteps} />}
+          {currentView === "laporan" && <ViewLaporan orders={orders} steps={steps} />}
+          {/* Simpan urutan tahap juga menghitung ulang NOMOR tahap tiap pesanan
+              di server (lihat PUT /api/pesanan/steps), jadi daftar pesanan ikut
+              dimuat ulang — bukan cuma daftar tahapnya. */}
+          {currentView === "setting" && (
+            <ViewSetting
+              showToast={showToast}
+              steps={steps}
+              onStepsSaved={() => {
+                fetchSteps();
+                fetchOrders();
+              }}
+            />
+          )}
           {currentView === "notif" && <ViewNotif showToast={showToast} orders={orders} />}
           </>
         </main>
@@ -697,6 +734,7 @@ export default function PesananDashboard() {
             setOpenId(null);
             showToast(msg);
           }}
+          onToast={showToast}
           steps={steps}
         />
       )}
@@ -1335,14 +1373,6 @@ function ViewPesanan({
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    VIEW: JADWAL PRODUKSI (kanban lanes)
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-const LANE_KEYS = ["desain", "produksi", "finishing", "kirim"] as const;
-const LANE_COLORS: Record<string, string> = {
-  desain: "var(--lane-desain)",
-  produksi: "var(--lane-produksi)",
-  finishing: "var(--lane-finishing)",
-  kirim: "var(--lane-kirim)",
-};
-
 function ViewJadwal({
   orders,
   openDetail,
@@ -1357,6 +1387,7 @@ function ViewJadwal({
   showToast: (msg: string) => void;
 }) {
   const active = orders.filter((o) => !o.is_done);
+  const lanes = useMemo(() => buildLanes(steps), [steps]);
 
   function barClass(pct: number) {
     if (pct >= 100) return "done";
@@ -1369,9 +1400,9 @@ function ViewJadwal({
   const [overLane, setOverLane] = useState<string | null>(null);
 
   async function handleDrop(orderId: string, laneKey: string) {
-    const laneIdx = LANE_KEYS.indexOf(laneKey as any);
+    const laneIdx = lanes.findIndex((l) => l.key === laneKey);
     if (laneIdx < 0) return;
-    const targetStep = LANES[laneIdx].from;
+    const targetStep = lanes[laneIdx].from;
     const order = orders.find((o) => o.id === orderId);
     if (!order || order.current_step === targetStep) return;
     const prevStep = order.current_step;
@@ -1387,7 +1418,7 @@ function ViewJadwal({
         return;
       }
       onMoved();
-      const laneName = LANES[laneIdx].name;
+      const laneName = lanes[laneIdx].name;
       showToast(
         `${orderId} dipindah ke ${laneName}${waNote(data?.notification?.status)}`
       );
@@ -1404,8 +1435,8 @@ function ViewJadwal({
 
       {(["desktop", "mobile"] as const).map((variant) => (
         <div key={variant} className={variant === "desktop" ? "pas-board hidden md:flex" : "flex flex-col md:hidden"}>
-          {LANES.map((lane, i) => {
-            const key = LANE_KEYS[i];
+          {lanes.map((lane, i) => {
+            const key = lane.key;
             const items = active.filter((o) => o.current_step >= lane.from && o.current_step <= lane.to);
             const isOver = overLane === `${variant}:${key}`;
             return (
@@ -1446,7 +1477,7 @@ function ViewJadwal({
               >
                 <div className="pas-lane-head">
                   <span className="pas-lane-title">
-                    <span className="pas-lane-dot" style={{ background: LANE_COLORS[key] }} />
+                    <span className="pas-lane-dot" style={{ background: LANE_COLOR_CYCLE[i % LANE_COLOR_CYCLE.length] }} />
                     {lane.name}
                   </span>
                   <span className="pas-lane-count">{items.length}</span>
@@ -1465,7 +1496,9 @@ function ViewJadwal({
                     </div>
                   ) : (
                     items.map((o) => {
-                      const pct = Math.round((o.current_step / 10) * 100);
+                      // Pakai persentase dari API — dihitung dari nomor tahap pada
+                      // urutan yang berlaku, jadi sama dengan halaman customer.
+                      const pct = o.pct ?? Math.round((o.current_step / 11) * 100);
                       const ini = initials(o.customer_name);
                       const stepName = steps[o.current_step - 1]?.name || `Tahap ${o.current_step}`;
                       const isDragging = draggingId === o.id;
@@ -1840,7 +1873,7 @@ function ViewCustomer({
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    VIEW: LAPORAN
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-function ViewLaporan({ orders }: { orders: OrderData[] }) {
+function ViewLaporan({ orders, steps }: { orders: OrderData[]; steps: StepRow[] }) {
   const [selectedMonth, setSelectedMonth] = useState(() =>
     monthKeyOf(new Date().toISOString())
   );
@@ -1994,7 +2027,7 @@ function ViewLaporan({ orders }: { orders: OrderData[] }) {
   const weekTotal = weeks.reduce((a, w) => a + w.value, 0);
 
   // Beban per fase — real-time, tidak ikut filter bulan
-  const byStage = LANES.map((l) => ({
+  const byStage = buildLanes(steps).map((l) => ({
     name: l.name,
     n: orders.filter(
       (o) => o.current_step >= l.from && o.current_step <= l.to && !o.is_done
@@ -2736,18 +2769,6 @@ function ViewSetting({
     setEditSteps(steps.map((s) => ({ name: s.name, position: s.position })));
   }, [steps]);
 
-  const addStep = () => {
-    const nextPos = editSteps.length + 1;
-    setEditSteps([...editSteps, { name: "", position: nextPos }]);
-  };
-
-  const removeStep = (idx: number) => {
-    if (editSteps.length <= 2) {
-      showToast("Minimal harus ada 2 tahap");
-      return;
-    }
-    setConfirmDelete(idx);
-  };
 
   const confirmRemoveStep = () => {
     if (confirmDelete === null) return;
@@ -2870,7 +2891,7 @@ function ViewSetting({
             <div>
               <p className="font-semibold text-[15px]">Tahap Produksi</p>
               <p className="text-[12.5px] text-[var(--pas-muted)] mt-1">
-                {editSteps.length} tahap - drag atau gunakan tombol ^v untuk ubah urutan.
+                {editSteps.length} tahap - pakai tombol ^v untuk ubah urutan. Nama tahap dikunci.
               </p>
             </div>
           </div>
@@ -2884,10 +2905,17 @@ function ViewSetting({
                 <span className="pas-num w-5 text-[12px] text-[var(--pas-muted)] shrink-0">
                   {i + 1}
                 </span>
+                {/* Nama tahap adalah IDENTITAS tahap (nama → slug, lihat
+                    lib/step-order.ts). Kalau teksnya diganti, riwayat &
+                    notifikasi WhatsApp tidak lagi menemukan tahapnya — jadi
+                    read-only. Yang boleh berubah dari dashboard cuma urutan. */}
                 <input
-                  className="flex-1 min-w-0 bg-transparent text-[14px] outline-none border-none"
+                  className="flex-1 min-w-0 bg-transparent text-[14px] outline-none border-none cursor-default"
                   value={s.name}
                   onChange={(e) => updateName(i, e.target.value)}
+                  readOnly
+                  aria-readonly="true"
+                  title="Nama tahap dikunci. Hubungi support untuk mengubahnya."
                   placeholder="Nama tahap..."
                 />
                 <div className="flex items-center gap-0.5 shrink-0">
@@ -2908,9 +2936,9 @@ function ViewSetting({
                     v
                   </button>
                   <button
-                    className="pas-btn-ghost px-1.5 py-1 text-[13px] text-red-400 hover:text-red-300"
-                    onClick={() => removeStep(i)}
-                    title="Hapus tahap"
+                    className="pas-btn-ghost px-1.5 py-1 text-[13px] disabled:opacity-30"
+                    disabled
+                    title="Jumlah tahap dikunci. Hubungi support untuk mengubahnya."
                   >
                     ×
                   </button>
@@ -2919,12 +2947,13 @@ function ViewSetting({
             ))}
           </div>
 
-          <button
-            className="mt-3 text-[13px] text-[var(--pas-accent)] hover:underline"
-            onClick={addStep}
-          >
-            + Tambah Tahap
-          </button>
+          <div className="mt-3 rounded-lg border border-[var(--pas-line-2)] bg-[var(--pas-surface)] px-3 py-2.5">
+            <p className="text-[12.5px] leading-relaxed text-[var(--pas-muted)]">
+              Cuma <span className="font-semibold text-[var(--pas-accent)]">urutan</span> yang bisa
+              diubah dari sini. Nama dan jumlah tahap dikunci supaya riwayat pesanan dan notifikasi
+              WhatsApp tetap nyambung dengan tahapnya. Mau ganti teks tahap? Hubungi support.
+            </p>
+          </div>
 
           <button
             className="pas-btn-accent w-full py-3 text-[14px] mt-4"
@@ -3631,12 +3660,14 @@ function DetailSheet({
   orders,
   onClose,
   onSaved,
+  onToast,
   steps,
 }: {
   orderId: string;
   orders: OrderData[];
   onClose: () => void;
   onSaved: (msg: string) => void;
+  onToast: (msg: string) => void;
   steps: StepRow[];
 }) {
   const order = orders.find((o) => o.id === orderId);
@@ -3649,6 +3680,7 @@ function DetailSheet({
   const [woPhotos, setWoPhotos] = useState<string[]>(order?.wo_photos || []);
   const [uploadingWo, setUploadingWo] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resending, setResending] = useState(false);
   const [kirimError, setKirimError] = useState("");
   const [editProductRows, setEditProductRows] = useState<{ product: string; custom: boolean; qty: string }[]>(() => {
     const initProducts = order?.products;
@@ -3771,6 +3803,34 @@ function DetailSheet({
     }
   };
 
+  /**
+   * Kirim ulang notifikasi WA untuk tahap yang sedang tampil — TANPA mengubah
+   * data order. Endpoint status hanya memicu notifikasi saat tahap berubah,
+   * jadi notifikasi yang gagal butuh jalur ini (lihat
+   * app/api/pesanan/orders/[id]/notify/route.ts).
+   */
+  const resendNotify = async () => {
+    if (!order || resending) return;
+    setResending(true);
+    try {
+      const res = await fetch(`/api/pesanan/orders/${order.id}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: step }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        onToast(data?.error || "Gagal kirim notifikasi");
+        return;
+      }
+      onToast(`Kirim ulang notifikasi${waNote(data?.notification?.status)}`);
+    } catch {
+      onToast("Gagal kirim notifikasi");
+    } finally {
+      setResending(false);
+    }
+  };
+
   const markDone = async () => {
     setKirimError("");
     setSaving(true);
@@ -3818,6 +3878,19 @@ function DetailSheet({
             <div className="text-[12px] text-[var(--pas-muted)] pas-num mt-0.5">{order.id}</div>
           </div>
           <span className={`pas-pill ${st} text-[11px]`}>{FILTER_LABEL[st]}</span>
+          <button
+            className="w-9 h-9 rounded-[10px] border border-[var(--pas-line)] bg-[var(--pas-surface)] grid place-items-center text-[var(--pas-muted)] hover:text-[var(--pas-accent)] hover:border-[rgba(40,25,18,.22)] transition shrink-0 disabled:opacity-50"
+            onClick={resendNotify}
+            disabled={resending}
+            title="Kirim ulang notifikasi WA tahap ini"
+            aria-label="Kirim ulang notifikasi WA"
+          >
+            {resending ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+            )}
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pt-5 pb-28" style={{ scrollbarColor: "var(--pas-line) transparent" }}>

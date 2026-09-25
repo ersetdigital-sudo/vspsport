@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import {
   ORDER_STATUS_LABELS,
-  ORDER_STATUS_LIST,
   ORDER_PHOTO_STAGES,
   type OrderStatus,
 } from "@/lib/types";
@@ -81,9 +80,12 @@ type BrandInfo = { name: string; whatsapp_number: string };
 export function TrackDetailClient({
   orderNumber,
   brand,
+  stepOrder,
 }: {
   orderNumber: string;
   brand: BrandInfo;
+  /** Urutan tahap dari tabel `production_steps` (dibaca server-side). */
+  stepOrder: OrderStatus[];
 }) {
   const [result, setResult] = useState<{
     order: any;
@@ -129,6 +131,7 @@ export function TrackDetailClient({
         history={result.history}
         orderNumber={orderNumber}
         brand={brand}
+        stepOrder={stepOrder}
       />
     );
   }
@@ -192,14 +195,17 @@ function OrderDetailView({
   history,
   orderNumber,
   brand,
+  stepOrder,
 }: {
   order: any;
   history: any[];
   orderNumber: string;
   brand: BrandInfo;
+  /** Urutan tahap dari tabel `production_steps`, diteruskan dari halaman. */
+  stepOrder: OrderStatus[];
 }) {
-  const progress = progressPercentFromStatus(order.current_status);
-  const nextEstimate = nextStageLabel(order.current_status);
+  const progress = progressPercentFromStatus(order.current_status, false, stepOrder);
+  const nextEstimate = nextStageLabel(order.current_status, stepOrder);
   const waLink = waMeUrl(
     brand.whatsapp_number,
     `Halo ${brand.name}, saya mau tanya soal pesanan ${orderNumber}`
@@ -330,7 +336,7 @@ function OrderDetailView({
         <div className="bg-surface-card rounded-2xl p-xl border border-hairline shadow-premium-lg mb-4">
           <h3 className="text-button-md text-ink mb-4">Riwayat Status</h3>
           <div className="flex flex-col gap-0">
-            {ORDER_STATUS_LIST.map((status, idx) => {
+            {stepOrder.map((status, idx) => {
               const historyEntry = history.find(
                 (h: any) => h.status === status
               );
@@ -338,8 +344,8 @@ function OrderDetailView({
               // penanda, dan nggak ada tahap yang masih "sedang berjalan".
               const isOrderDone = isOrderCompleted(order.current_status);
               const currentIdx = isOrderDone
-                ? ORDER_STATUS_LIST.length - 1
-                : ORDER_STATUS_LIST.indexOf(order.current_status);
+                ? stepOrder.length - 1
+                : stepOrder.indexOf(order.current_status);
               const isCompleted = currentIdx >= 0 && idx <= currentIdx;
               const isCurrent = !isOrderDone && idx === currentIdx;
 
@@ -360,7 +366,7 @@ function OrderDetailView({
                         <Circle className="w-3 h-3" />
                       )}
                     </div>
-                    {idx < ORDER_STATUS_LIST.length - 1 && (
+                    {idx < stepOrder.length - 1 && (
                       <div
                         className={`w-0.5 flex-1 min-h-[24px] ${
                           idx < currentIdx ? "bg-primary" : "bg-hairline"
@@ -384,7 +390,7 @@ function OrderDetailView({
                         status={status}
                         className="mr-1 inline-block w-4 h-4 align-text-bottom"
                       />
-                      {ORDER_STATUS_LABELS[status]}
+                      {ORDER_STATUS_LABELS[status as OrderStatus]}
                     </p>
                     {historyEntry ? (
                       <div className="mt-1">

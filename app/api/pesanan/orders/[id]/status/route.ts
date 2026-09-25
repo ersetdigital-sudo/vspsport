@@ -5,7 +5,7 @@ import { destroyCloudinaryAssets } from "@/lib/cloudinary-server";
 import { triggerStageNotification, type NotificationTriggerStatus } from "@/lib/fonnte";
 import { STATUS_TO_STAGE, statusFromStep } from "@/lib/order-status";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { ORDER_STATUS_LIST } from "@/lib/types";
+import { loadStepOrder } from "@/lib/step-order-server";
 
 /**
  * PATCH /api/pesanan/orders/[id]/status — update tahap produksi dari
@@ -27,6 +27,9 @@ export async function PATCH(
   if (!supabase) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Urutan tahap dari tabel (bukan daftar di kode) — lihat lib/step-order.ts.
+  const stepOrder = await loadStepOrder(supabase);
 
   const body = await request.json();
   const { current_step, note, courier, tracking_number, deadline, wo_photos, customer_name, customer_phone, design_photos } = body;
@@ -101,12 +104,12 @@ export async function PATCH(
     // hanya melihat status "Selesai" tanpa blok pengiriman.
     // Order yang sudah selesai lalu di-save ulang di tahap akhir tetap "selesai",
     // kecuali `reopen: true` dikirim (satu-satunya jalan menurunkan tahap).
-    const isFinalStage = newStage === ORDER_STATUS_LIST.length;
+    const isFinalStage = newStage === stepOrder.length;
     const keepDone = isAlreadyDone && !reopen && isFinalStage;
     if (isFinalStage || keepDone) {
       effectiveStatus = "selesai";
     } else {
-      effectiveStatus = statusFromStep(current_step);
+      effectiveStatus = statusFromStep(current_step, stepOrder);
     }
     updateData.current_status = effectiveStatus;
   }
@@ -156,7 +159,7 @@ export async function PATCH(
   // Insert history entry using the UUID from the updated row
   let historyError: string | null = null;
   if (current_step !== undefined && updatedOrder) {
-    const statusValue = effectiveStatus ?? statusFromStep(current_step);
+    const statusValue = effectiveStatus ?? statusFromStep(current_step, stepOrder);
     const { error: histErr } = await supabase.from("order_status_history").insert({
       order_id: updatedOrder.id,
       status: statusValue,

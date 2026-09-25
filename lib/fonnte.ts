@@ -15,6 +15,7 @@ import { stageLabel } from "@/lib/order-status";
 import { maklonLabelFromStep } from "@/lib/maklon-status";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAppUrl } from "@/lib/app-url";
+import { loadStepOrder, type StepOrder } from "@/lib/step-order-server";
 
 export const FONNTE_TOKEN_KEY = "fonnte_token";
 export const FONNTE_API_URL = "https://api.fonnte.com/send";
@@ -55,7 +56,8 @@ export function buildMaklonTrackingUrl(orderNumber: string, token?: string): str
 export function buildWhatsAppMessage(
   stage: number,
   order: { customer_name: string; order_number: string },
-  token?: string
+  token?: string,
+  stepOrder?: StepOrder
 ): string {
   const customerName = order.customer_name;
   const orderNumber = order.order_number;
@@ -75,7 +77,7 @@ export function buildWhatsAppMessage(
     ].join("\n");
   }
 
-  const stageName = stageLabel(stage);
+  const stageName = stageLabel(stage, stepOrder);
 
     return [
       "UPDATE PESANAN",
@@ -370,10 +372,15 @@ export async function triggerStageNotification(
       return "failed";
     }
 
+    // Urutan tahap dibaca dari tabel `production_steps`, bukan dari daftar di
+    // kode — supaya pesan WA menyebut nama tahap yang SAMA dengan yang tampil
+    // di dashboard setelah admin menggeser urutan di menu Pengaturan.
+    const stepOrder = await loadStepOrder(supabase);
     const message = buildWhatsAppMessage(
       stage,
       order,
-      signTrackingToken(order.order_number)
+      signTrackingToken(order.order_number),
+      stepOrder
     );
     const result = await sendFonnteMessage(phone, message);
 

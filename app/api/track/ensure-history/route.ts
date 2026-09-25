@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { ORDER_STATUS_LIST } from "@/lib/types";
+import { loadStepOrder } from "@/lib/step-order-server";
 import {
   isOrderCompleted,
   normalizeOrderStatus,
@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
 
   // Order yang sudah tuntas TIDAK di-backfill: timeline-nya toh penuh, dan
   // menambah baris history bertimestamp sintetis ke order nyata cuma bikin bising.
-  const currentStep = stepFromStatus(order.current_status);
+  const stepOrder = await loadStepOrder(supabase);
+  const currentStep = stepFromStatus(order.current_status, stepOrder);
   if (isOrderCompleted(order.current_status) || currentStep <= 1) {
     // At step 1 or unknown — just return existing history
     const { data: history } = await supabase
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
   }[] = [];
 
   for (let i = 0; i < currentStep; i++) {
-    const stepStatus = ORDER_STATUS_LIST[i];
+    const stepStatus = stepOrder[i];
     if (!stepStatus || existingStatuses.has(stepStatus)) continue;
 
     // Generate timestamp: spread from created_at, 5 minutes apart

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
 import { getAllOrders } from "@/lib/queries-orders";
 import { generateOrderNumber } from "@/lib/order-number";
-import { ORDER_STATUS_LIST } from "@/lib/types";
+import { loadStepOrder } from "@/lib/step-order-server";
 
 /**
  * GET /api/admin/orders — list all orders (admin only)
@@ -29,10 +29,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const orderNumber = await generateOrderNumber(supabase);
-    // Status awal = tahap pertama dari ORDER_STATUS_LIST ("desain"). Nilai
-    // warisan `order_diterima` tidak dipakai lagi: dia tidak ada di daftar
-    // tahap, sehingga di halaman tracking hanya terbaca lewat fallback.
-    const initialStatus = ORDER_STATUS_LIST[0];
+    // Status awal = tahap PERTAMA pada urutan produksi yang berlaku (tabel
+    // `production_steps`, lihat lib/step-order.ts), bukan urutan bawaan di
+    // kode. Nilai warisan `order_diterima` tidak dipakai lagi: dia tidak ada di
+    // daftar tahap, sehingga di halaman tracking hanya terbaca lewat fallback.
+    const initialStatus = (await loadStepOrder(supabase))[0];
 
     const { data: order, error } = await supabase
       .from("orders")
