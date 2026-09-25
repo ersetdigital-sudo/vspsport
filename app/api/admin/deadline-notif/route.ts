@@ -13,6 +13,24 @@ export const maxDuration = 60;
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
+/**
+ * Ambil secret cron dari request. Dua bentuk diterima:
+ *
+ *  - `Authorization: Bearer <CRON_SECRET>` — inilah yang dikirim Vercel Cron
+ *    secara otomatis begitu env `CRON_SECRET` di-set. Tanpa menerima header
+ *    ini, cron Vercel selalu ditolak 401 dan notifikasi tidak pernah jalan.
+ *  - `x-cron-secret` atau `?secret=` — untuk pemanggilan manual: curl, GitHub
+ *    Actions, atau cron eksternal lain.
+ *
+ * Dulu hanya bentuk kedua yang diterima, jadi jadwal cron otomatis tidak akan
+ * pernah lolos autentikasi.
+ */
+function readCronSecret(req: Request, url: URL): string | null {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) return authHeader.slice(7).trim();
+  return req.headers.get("x-cron-secret") || url.searchParams.get("secret");
+}
+
 /** Semua setting yang dibutuhkan, dibaca lewat SATU query. */
 const SETTING_KEYS = [
   "deadline_notif_enabled",
@@ -77,11 +95,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const auth = req.headers.get("x-cron-secret");
   const url = new URL(req.url);
-  const secretParam = url.searchParams.get("secret");
-
-  const secretValue = auth || secretParam;
+  const secretValue = readCronSecret(req, url);
   const cronSecretOk = Boolean(CRON_SECRET) && secretValue === CRON_SECRET;
 
   // Dua jalur masuk yang sah:
