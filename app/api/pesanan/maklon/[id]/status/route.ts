@@ -69,6 +69,7 @@ export async function PATCH(
   if (body.product_name !== undefined) updateData.product_type = body.product_name;
   if (body.quantity !== undefined) updateData.quantity = parseInt(body.quantity, 10) || 0;
   if (body.sizes !== undefined) updateData.sizes = body.sizes;
+  if (body.material !== undefined) updateData.material = body.material || "";
   if (body.created_at !== undefined) updateData.created_at = body.created_at;
   if (customer_name !== undefined) updateData.customer_name = customer_name;
   if (customer_phone !== undefined) updateData.customer_phone = customer_phone;
