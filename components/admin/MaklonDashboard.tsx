@@ -1198,7 +1198,6 @@ function DetailSheet({
                 <p className="mt-1 text-[14px] font-semibold">{order.customer_name}</p>
                 <p className="text-[12px] text-[var(--pas-muted)] mt-0.5 pas-num">
                   {order.customer_phone}
-                  {order.customer_city ? ` - ${order.customer_city}` : ""}
                 </p>
               </div>
               <div className="px-4 py-3 border-b border-r border-[var(--pas-line)]">
