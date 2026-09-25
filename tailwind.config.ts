@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Tailwind config — MENARA design system.
+ * Tailwind config — VSP Sport design system.
  * Colors map to CSS variables in app/globals.css (light) overridden
  * under .dark. Shadows + glass utilities also read from CSS vars so
  * theme switching is automatic.

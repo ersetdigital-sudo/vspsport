@@ -1,6 +1,6 @@
 <div align="center">
 
-# MENARA
+# VSP Sport
 
 **Production operations platform for a custom jersey manufacturer.**
 
@@ -21,7 +21,7 @@ Order intake → 11-stage production pipeline → automated WhatsApp updates →
 
 ## The problem
 
-MENARA produces custom full-printing jerseys. Every order passes through eleven production stages across different workstations — design, layout, colour proofing, printing, press transfer, cutting, sewing, finishing, QC, packing, shipping.
+VSP Sport produces custom full-printing jerseys. Every order passes through eleven production stages across different workstations — design, layout, colour proofing, printing, press transfer, cutting, sewing, finishing, QC, packing, shipping.
 
 Before this platform, keeping customers informed meant someone pausing work to answer *"how far along is my order?"* on WhatsApp. Order status lived in the operator's head; the customer had no way to check it themselves.
 
@@ -151,7 +151,7 @@ A few parts that were genuinely interesting to get right.
 
 **Photos without a media server.** Design approvals and work orders are uploaded straight from the browser to Cloudinary via an unsigned upload preset; only the resulting URLs are stored. A server-side fallback route handles cases the browser preset can't.
 
-**Order numbers that survive being read aloud.** `MENARA` + `YYMMDD` + four characters drawn from a CSPRNG, with the ambiguous characters `B I O L 0 1` removed from the alphabet. Uniqueness is checked against the database with retry, because customers read these numbers over the phone.
+**Order numbers that survive being read aloud.** `VSP` + `YYMMDD` + four characters drawn from a CSPRNG, with the ambiguous characters `B I O L 0 1` removed from the alphabet. Uniqueness is checked against the database with retry, because customers read these numbers over the phone. Numbers minted before the rename (`MENARA…`) still resolve on the tracking page, so links already sent to customers keep working.
 
 ## Security model
 

@@ -10,7 +10,7 @@ import {
 
 /**
  * POST /api/track/ensure-history
- * Body: { orderNumber: "MENARA-260907-001", token: "..." }
+ * Body: { orderNumber: "VSP-260907-001", token: "..." }
  *
  * Reads the order's current_status, checks what history entries exist,
  * and INSERTS any missing ones. Returns the complete history.

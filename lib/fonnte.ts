@@ -71,7 +71,7 @@ export function buildWhatsAppMessage(
       "Cek detail pesanan dan informasi pengiriman di:",
       trackingUrl,
       "",
-      "Terima kasih sudah mempercayakan pesanan Kakak kepada MENARA.",
+      "Terima kasih sudah mempercayakan pesanan Kakak kepada VSP Sport.",
     ].join("\n");
   }
 
@@ -91,7 +91,7 @@ export function buildWhatsAppMessage(
       "",
       "Kami akan mengirimkan update kembali saat pesanan masuk ke tahap berikutnya.",
       "",
-      "Terima kasih sudah mempercayakan pesanan Kakak kepada MENARA.",
+      "Terima kasih sudah mempercayakan pesanan Kakak kepada VSP Sport.",
     ].join("\n");
 }
 
@@ -118,7 +118,7 @@ export function buildMaklonWhatsAppMessage(
       "Cek detail pesanan di:",
       trackingUrl,
       "",
-      "Terima kasih sudah mempercayakan pesanan Kakak kepada MENARA.",
+      "Terima kasih sudah mempercayakan pesanan Kakak kepada VSP Sport.",
     ].join("\n");
   }
 
@@ -138,7 +138,7 @@ export function buildMaklonWhatsAppMessage(
     "",
     "Kami akan mengirimkan update kembali saat pesanan masuk ke tahap berikutnya.",
     "",
-    "Terima kasih sudah mempercayakan pesanan Kakak kepada MENARA.",
+    "Terima kasih sudah mempercayakan pesanan Kakak kepada VSP Sport.",
   ].join("\n");
 }
 

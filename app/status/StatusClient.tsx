@@ -19,6 +19,7 @@ import {
   TOTAL_STAGES,
 } from "@/lib/order-status";
 import { formatShortDateTimeID } from "@/lib/format-date";
+import { optimizeImageUrl } from "@/lib/cloudinary";
 
 const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 const SPIN_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/></svg>';
@@ -126,8 +127,8 @@ export default function StatusClient({
   // Fetch order data on mount — always try fresh from DB via session token
   useEffect(() => {
     if (!orderId) return;
-    const key = `menara_verified_${orderId}`;
-    const tokenKey = `menara_token_${orderId}`;
+    const key = `vsp_verified_${orderId}`;
+    const tokenKey = `vsp_token_${orderId}`;
 
     // Token dari link WhatsApp (HMAC, 30 hari) → simpan & langsung akses,
     // tanpa modal verifikasi HP. Kalau token invalid/expired, fetch di bawah
@@ -287,9 +288,9 @@ export default function StatusClient({
 
       // Store verification
       if (data.token) {
-        sessionStorage.setItem(`menara_token_${orderId}`, data.token);
+        sessionStorage.setItem(`vsp_token_${orderId}`, data.token);
       }
-      sessionStorage.setItem(`menara_verified_${orderId}`, JSON.stringify(data));
+      sessionStorage.setItem(`vsp_verified_${orderId}`, JSON.stringify(data));
       setOrder(data.order);
       setHistory(data.history);
       setLoaded(true);
@@ -306,7 +307,7 @@ export default function StatusClient({
         <div className="trk-grid min-h-screen">
           <div className="trk-glow min-h-screen flex items-center justify-center px-5">
             <div className="text-center">
-              <p className="text-[#9aa0aa] text-[16px]">Nomor pesanan tidak ditemukan.</p>
+              <p className="text-[#A29086] text-[16px]">Nomor pesanan tidak ditemukan.</p>
               <button
                 onClick={() => router.push("/track")}
                 className="trk-btn-accent mt-6 px-6 py-3 text-[14px]"
@@ -326,7 +327,7 @@ export default function StatusClient({
         <div className="trk-grid min-h-screen">
           <div className="trk-glow min-h-screen">
             {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(10,10,11,.78)] border-b border-[#26282e]">
+            <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(10,10,11,.78)] border-b border-[#33261F]">
               <div className="max-w-3xl mx-auto px-5 sm:px-8 py-4 flex items-center gap-3">
                 <a
                   href="/track"
@@ -338,7 +339,7 @@ export default function StatusClient({
                   </svg>
                 </a>
                 <div className="leading-none">
-                  <p className="trk-stencil text-[9px] text-[#9aa0aa]">MENARA</p>
+                  <p className="trk-stencil text-[9px] text-[#A29086]">VSP Sport</p>
                   <p className="trk-display text-[15px] mt-1">Detail Progres Pesanan</p>
                 </div>
               </div>
@@ -349,14 +350,14 @@ export default function StatusClient({
               <main className="max-w-3xl mx-auto px-5 sm:px-8 pt-10">
                 <div className="trk-card p-5 sm:p-7 max-w-md mx-auto">
                   <p className="trk-display text-[20px] text-center mb-2">Verifikasi Pesanan</p>
-                  <p className="text-[14px] text-[#9aa0aa] text-center mb-6">
+                  <p className="text-[14px] text-[#A29086] text-center mb-6">
                     Masukkan nomor HP untuk melihat{" "}
                     <span className="text-white font-semibold">{orderId}</span>
                   </p>
 
                   <form onSubmit={handleVerify}>
                     <label className="block">
-                      <span className="trk-stencil text-[10px] text-[#9aa0aa]">Nomor HP</span>
+                      <span className="trk-stencil text-[10px] text-[#A29086]">Nomor HP</span>
                       <input
                         required
                         type="tel"
@@ -437,24 +438,24 @@ export default function StatusClient({
   className="shrink-0"
   aria-label="Kembali ke tracking"
 >
-  {/* Mark saja (tanpa wordmark), karena teks MENARA sudah ada di sampingnya */}
+  {/* Mark saja (tanpa wordmark), karena teks VSP Sport sudah ada di sampingnya */}
   <img
-    src="/logo-menara-mark.png"
+    src="/logo-vsp-mark.png"
     alt=""
     aria-hidden="true"
     className="h-8 w-auto"
   />
 </a>
                 <div className="leading-tight">
-                  <p className="trk-display text-[14.5px] font-semibold uppercase tracking-wide sm:text-[15px]">MENARA</p>
-                  <p className="text-[10.5px] text-[#6f757c] sm:text-[11px]">Pabrik Jersey Custom Full Printing</p>
+                  <p className="trk-display text-[14.5px] font-semibold uppercase tracking-wide sm:text-[15px]">VSP Sport</p>
+                  <p className="text-[10.5px] text-[#7E6F66] sm:text-[11px]">Pabrik Jersey Custom Full Printing</p>
                 </div>
               </div>
               <a
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[.12] bg-white/5 px-4 py-2 text-[13px] font-medium text-[#979ba4] hover:bg-white/10 hover:text-white transition"
+                className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[.12] bg-white/5 px-4 py-2 text-[13px] font-medium text-[#A29086] hover:bg-white/10 hover:text-white transition"
               >
                 Hubungi CS
               </a>
@@ -475,7 +476,7 @@ export default function StatusClient({
                   <>Pesanan kamu sedang kami kerjakan</>
                 )}
                 <br className="hidden sm:block" />{" "}
-                <span className="text-[#FFE500]">sesuai jadwal</span>
+                <span className="text-[#F2762A]">sesuai jadwal</span>
               </h1>
 
               <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -490,11 +491,11 @@ export default function StatusClient({
                       setTimeout(() => (btn.textContent = o), 1400);
                     }
                   }}
-                  className="dpo-meta dpo-mono tracking-wider text-[#e8ebe9] hover:bg-white/[.08] transition"
+                  className="dpo-meta dpo-mono tracking-wider text-[#EFE3DC] hover:bg-white/[.08] transition"
                   title="Salin nomor pesanan"
                 >
                   <span id="dpoCopyLabel">{orderId}</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-[#6f757c]" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-[#7E6F66]" aria-hidden="true">
                     <rect x="9" y="9" width="11" height="11" rx="2"></rect>
                     <path d="M5 15V5a2 2 0 0 1 2-2h8"></path>
                   </svg>
@@ -504,7 +505,7 @@ export default function StatusClient({
                 </span>
                 {order.deadline && (
                   <span className="dpo-meta">
-                    Target <span className="dpo-mono ml-1 text-[#e8ebe9]">{formatShortDateTimeID(order.deadline)}</span>
+                    Target <span className="dpo-mono ml-1 text-[#EFE3DC]">{formatShortDateTimeID(order.deadline)}</span>
                   </span>
                 )}
               </div>
@@ -516,13 +517,13 @@ export default function StatusClient({
                     <p className="dpo-kicker">Progres keseluruhan</p>
                     <p className="mt-1.5 font-bold leading-none text-[34px] dpo-h1 sm:text-[40px]">
                       <span ref={pctRef}>0</span>
-                      <span className="ml-0.5 text-[20px] text-[#6f757c]">%</span>
+                      <span className="ml-0.5 text-[20px] text-[#7E6F66]">%</span>
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="dpo-h2 text-[15px]">Tahap {step} <span className="text-[#6f757c]">/ {totalSteps}</span></p>
+                    <p className="dpo-h2 text-[15px]">Tahap {step} <span className="text-[#7E6F66]">/ {totalSteps}</span></p>
                     {lastUpdate && (
-                      <p className="dpo-mono mt-1 text-[10.5px] leading-tight text-[#6f757c]">
+                      <p className="dpo-mono mt-1 text-[10.5px] leading-tight text-[#7E6F66]">
                         Update {formatShortDateTimeID(lastUpdate.created_at)}
                       </p>
                     )}
@@ -533,7 +534,7 @@ export default function StatusClient({
                     <span key={i} className={i + 1 < step ? "on" : i + 1 === step ? "cur" : ""}></span>
                   ))}
                 </div>
-                <div className="dpo-mono mt-2.5 flex justify-between text-[10px] uppercase tracking-wider text-[#6f757c]">
+                <div className="dpo-mono mt-2.5 flex justify-between text-[10px] uppercase tracking-wider text-[#7E6F66]">
                   <span>Desain</span>
                   <span>Kirim</span>
                 </div>
@@ -544,7 +545,7 @@ export default function StatusClient({
             <section className="dpo-reveal mt-9 sm:mt-12">
               <div className="flex items-end justify-between gap-3">
                 <h2 className="dpo-h2">Tahap Produksi</h2>
-                <span className="text-[12px] text-[#6f757c]">{step} dari {totalSteps} tahap</span>
+                <span className="text-[12px] text-[#7E6F66]">{step} dari {totalSteps} tahap</span>
               </div>
 
               <ol className="dpo-steps mt-4">
@@ -582,7 +583,7 @@ export default function StatusClient({
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="dpo-mono text-[11px] text-[#6f757c]">{String(n).padStart(2, "0")}</span>
+                          <span className="dpo-mono text-[11px] text-[#7E6F66]">{String(n).padStart(2, "0")}</span>
                           <h3 className="dpo-step-title">{stepDef.name}</h3>
                           {st === "done" && <span className="dpo-chip dpo-chip-done">Selesai</span>}
                           {st === "now" && (
@@ -612,8 +613,9 @@ export default function StatusClient({
                               >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                  src={url}
+                                  src={optimizeImageUrl(url, 640)}
                                   alt={`Preview desain pesanan ${di + 1}`}
+                                  loading="lazy"
                                   className="block w-full max-w-[280px] max-h-[320px] object-contain"
                                 />
                                 <span className="pointer-events-none absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white backdrop-blur border border-white/15 opacity-90 group-hover:bg-black/70 transition">
@@ -639,8 +641,8 @@ export default function StatusClient({
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <h2 className="dpo-h2">Rincian Pesanan</h2>
                   {totalPcs > 0 && (
-                    <span className="text-[12px] text-[#6f757c]">
-                      Total <span className="dpo-mono text-[#e8ebe9]">{fmtQty(totalPcs)}</span> pcs
+                    <span className="text-[12px] text-[#7E6F66]">
+                      Total <span className="dpo-mono text-[#EFE3DC]">{fmtQty(totalPcs)}</span> pcs
                     </span>
                   )}
                 </div>
@@ -651,7 +653,7 @@ export default function StatusClient({
                       {products.map((p, i) => (
                         <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[.03] px-4 py-3.5">
                           <p className="text-[14.5px] font-medium">{p.name}</p>
-                          <p className="dpo-mono text-[15px] flex-none text-[#FFE500]">
+                          <p className="dpo-mono text-[15px] flex-none text-[#F2762A]">
                             {fmtQty(p.sizes.reduce((a, s) => a + (s.qty || 0), 0))}
                           </p>
                         </div>
@@ -664,7 +666,7 @@ export default function StatusClient({
                         <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">
                           <table className="w-full text-[13px]">
                             <thead>
-                              <tr className="bg-white/[.05] text-[11px] uppercase tracking-wider text-[#6f757c]">
+                              <tr className="bg-white/[.05] text-[11px] uppercase tracking-wider text-[#7E6F66]">
                                 <th className="px-2 py-2.5 text-left font-medium w-[31%]">Ukuran</th>
                                 {products.map((p) => (
                                   <th key={p.name} className="px-2 py-2.5 text-center font-medium">{p.name}</th>
@@ -683,25 +685,25 @@ export default function StatusClient({
                                     {products.map((p) => {
                                       const qty = p.sizes.find((s) => s.size === sz)?.qty || 0;
                                       return (
-                                        <td key={p.name} className={`dpo-mono px-2 py-2.5 text-center text-[14px] ${qty ? "" : "text-[#6f757c]"}`}>
+                                        <td key={p.name} className={`dpo-mono px-2 py-2.5 text-center text-[14px] ${qty ? "" : "text-[#7E6F66]"}`}>
                                           {qty ? fmtQty(qty) : "–"}
                                         </td>
                                       );
                                     })}
-                                    <td className="dpo-mono px-2 py-2.5 text-right text-[14px] font-semibold text-[#FFE500]">{fmtQty(rowTotal)}</td>
+                                    <td className="dpo-mono px-2 py-2.5 text-right text-[14px] font-semibold text-[#F2762A]">{fmtQty(rowTotal)}</td>
                                   </tr>
                                 );
                               })}
                             </tbody>
                             <tfoot>
                               <tr className="border-t border-white/15 bg-white/[.04] font-semibold">
-                                <td className="px-2 py-3 text-left text-[12px] uppercase tracking-wider text-[#6f757c]">Total</td>
+                                <td className="px-2 py-3 text-left text-[12px] uppercase tracking-wider text-[#7E6F66]">Total</td>
                                 {products.map((p) => (
                                   <td key={p.name} className="dpo-mono px-2 py-3 text-center text-[14px]">
                                     {fmtQty(p.sizes.reduce((a, s) => a + (s.qty || 0), 0))}
                                   </td>
                                 ))}
-                                <td className="dpo-mono px-2 py-3 text-right text-[14px] text-[#FFE500]">{fmtQty(totalPcs)}</td>
+                                <td className="dpo-mono px-2 py-3 text-right text-[14px] text-[#F2762A]">{fmtQty(totalPcs)}</td>
                               </tr>
                             </tfoot>
                           </table>
@@ -733,11 +735,11 @@ export default function StatusClient({
                   <details className="mt-5 group">
                     <summary className="cursor-pointer list-none flex items-center justify-between rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 text-[14px] hover:bg-white/[.06] transition">
                       <span>Catatan Desain</span>
-                      <svg className="group-open:rotate-180 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#979ba4" strokeWidth="2.2" strokeLinecap="round">
+                      <svg className="group-open:rotate-180 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A29086" strokeWidth="2.2" strokeLinecap="round">
                         <path d="M6 9l6 6 6-6" />
                       </svg>
                     </summary>
-                    <p className="mt-3 px-1 text-[14px] text-[#979ba4] leading-relaxed">{order.design_notes}</p>
+                    <p className="mt-3 px-1 text-[14px] text-[#A29086] leading-relaxed">{order.design_notes}</p>
                   </details>
                 )}
               </div>
@@ -770,7 +772,7 @@ export default function StatusClient({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 rounded-full bg-[#FFE500] px-6 py-3 text-center text-[14px] font-semibold text-black hover:bg-[#FFE500] transition"
+                    className="flex-1 rounded-full bg-[#F2762A] px-6 py-3 text-center text-[14px] font-semibold text-black hover:bg-[#F2762A] transition"
                   >
                     Lacak Pengiriman
                   </a>
@@ -781,7 +783,7 @@ export default function StatusClient({
                       btn.textContent = "Tersalin ✓";
                       setTimeout(() => (btn.textContent = "Salin Resi"), 1600);
                     }}
-                    className="rounded-full border border-white/[.12] bg-white/5 px-5 py-3 text-[14px] text-[#979ba4] hover:bg-white/10 hover:text-white transition"
+                    className="rounded-full border border-white/[.12] bg-white/5 px-5 py-3 text-[14px] text-[#A29086] hover:bg-white/10 hover:text-white transition"
                   >
                     Salin Resi
                   </button>
@@ -792,22 +794,22 @@ export default function StatusClient({
             {/* CTA */}
             <section className="dpo-card mt-8 p-6 sm:p-8 text-center">
               <h2 className="dpo-h1 text-2xl sm:text-3xl">Ada yang mau ditanyakan?</h2>
-              <p className="mt-2 text-[14px] text-[#979ba4]">Tim CS kami siap bantu, Senin–Sabtu 08.00–20.00 WIB.</p>
+              <p className="mt-2 text-[14px] text-[#A29086]">Tim CS kami siap bantu, Senin–Sabtu 08.00–20.00 WIB.</p>
               <div className="mt-5 flex justify-center">
                 <a
                   href={waLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-[#FFE500] px-8 py-3.5 text-[15px] font-semibold text-black hover:bg-[#FFE500] transition hover:-translate-y-px"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-black hover:bg-[#F2762A] transition hover:-translate-y-px"
                 >
                   Chat CS via WhatsApp
                 </a>
               </div>
-              <p className="mt-4 text-[12px] text-[#6f757c]">Semua komunikasi order ditangani lewat WhatsApp resmi MENARA.</p>
+              <p className="mt-4 text-[12px] text-[#7E6F66]">Semua komunikasi order ditangani lewat WhatsApp resmi VSP Sport.</p>
             </section>
 
-            <footer className="mt-10 text-center text-[12px] text-[#6f757c]">
-              <p>© 2026 MENARA — Pabrik Jersey Custom Full Printing</p>
+            <footer className="mt-10 text-center text-[12px] text-[#7E6F66]">
+              <p>© 2026 VSP Sport — Pabrik Jersey Custom Full Printing</p>
             </footer>
           </main>
 
@@ -817,7 +819,7 @@ export default function StatusClient({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#FFE500] px-6 py-3.5 text-[15px] font-semibold text-black"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-6 py-3.5 text-[15px] font-semibold text-black"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 18, height: 18, flex: "none" }} aria-hidden="true">
                 <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.4-.2-2.7.7.7-2.6-.2-.4A8 8 0 0 1 12 4z"></path>
@@ -880,7 +882,7 @@ export default function StatusClient({
               </button>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={lightboxUrl}
+                src={optimizeImageUrl(lightboxUrl, 1600)}
                 alt="Preview desain diperbesar"
                 onClick={(e) => e.stopPropagation()}
                 onWheel={(e) => {

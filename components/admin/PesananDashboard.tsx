@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { IMAGE_ACCEPT, optimizeImageUrl, uploadToCloudinary } from "@/lib/cloudinary";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_LIST, getProgress } from "@/lib/types";
 import {
   dateKeyID,
@@ -22,11 +22,6 @@ import {
 import { waNote } from "@/lib/notif-note";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Search, AlertTriangle } from "lucide-react";
-
-// Same delivery optimization the old /api/upload/design route applied (f_auto,q_auto)
-function optimizeDesignUrl(url: string): string {
-  return url.includes("/upload/") ? url.replace("/upload/", "/upload/f_auto,q_auto/") : url;
-}
 
 type StepRow = { id: string; name: string; position: number };
 
@@ -102,7 +97,7 @@ const MONTH_NAMES = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 /** Palet donut/legend; diulang kalau jumlah produk melebihi jumlah warna. */
-const CAT_COLORS = ["#0C0C0D", "#7FA37B", "#FFE500", "#8A8A8F", "#4E7A6B", "#A88C36"];
+const CAT_COLORS = ["#C0392B", "#F2762A", "#F2762A", "#8A7C73", "#B07514", "#3F5BA9"];
 
 /** "2026-09" dari created_at, menurut zona Asia/Jakarta (bukan zona browser). */
 const monthKeyOf = (iso: string) => monthKeyID(iso);
@@ -464,13 +459,13 @@ export default function PesananDashboard() {
     <div className="pas-shell">
       {/* â”€â”€ SIDEBAR â”€â”€ */}
       <aside className="pas-side">
-        <a href="/" className="flex items-center gap-3 px-2 pb-5">
-<img src="/logo-menara.png" alt="MENARA" className="pas-mark w-14 h-14 rounded-[10px] object-contain" />
-          <span className="leading-none">
-            <span className="block pas-display text-[15px] !text-white">MENARA</span>
-            <span className="block text-[11px] !text-white/70 mt-[3px]">
-              Admin Panel
-            </span>
+        <a href="/" className="pas-brand">
+          <span className="pas-brand-mark">
+            <img src="/logo-vsp.png" alt="VSP Sport" />
+          </span>
+          <span className="block text-center">
+            <span className="pas-brand-name">VSP Sport</span>
+            <span className="pas-brand-sub">Admin Panel</span>
           </span>
         </a>
         <p className="pas-navsec">Operasional</p>
@@ -524,9 +519,9 @@ export default function PesananDashboard() {
         <div className="pas-userbox mt-auto p-3 flex items-center gap-3">
           <span className="pas-avatar pas-avatar-invert">AD</span>
           <span className="leading-tight">
-            <span className="block text-[13.5px] font-semibold">Admin MENARA</span>
+            <span className="block text-[13.5px] font-semibold">Admin VSP</span>
             <span className="block text-[11.5px] opacity-70">
-              admin@menara.id
+              admin@vspsport.id
             </span>
           </span>
         </div>
@@ -537,12 +532,10 @@ export default function PesananDashboard() {
         <header className="pas-topbar">
           <div className="px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-<img src="/logo-menara.png" alt="MENARA" className="pas-mark w-12 h-12 rounded-[9px] object-contain lg:hidden" />
+<img src="/logo-vsp.png" alt="VSP Sport" className="w-10 h-10 object-contain lg:hidden" />
               <div className="min-w-0">
-                <p className="text-[11px] text-[var(--pas-muted)] leading-none">
-                  {meta.crumb}
-                </p>
-                <h1 className="pas-display text-[17px] leading-tight mt-1 truncate">
+                <p className="pas-kicker">{meta.crumb}</p>
+                <h1 className="pas-display pas-title mt-1 truncate">
                   {meta.title}
                 </h1>
               </div>
@@ -606,14 +599,12 @@ export default function PesananDashboard() {
 
       {/* â”€â”€ MOBILE NAV DRAWER â”€â”€ */}
       <Sheet open={showMobileNav} onOpenChange={setShowMobileNav}>
-        <SheetContent side="left" className="p-5 bg-[#111113] text-white border-r border-white/10 w-[280px] [&>button]:text-white/50 [&>button]:hover:text-white [&>button]:hover:bg-white/10 [&>button]:rounded-lg [&>button]:p-2 [&>button]:transition">
+        <SheetContent side="left" className="p-5 bg-[#1E1512] text-white border-r border-white/10 w-[280px] [&>button]:text-white/50 [&>button]:hover:text-white [&>button]:hover:bg-white/10 [&>button]:rounded-lg [&>button]:p-2 [&>button]:transition">
           {/* Drawer header */}
           <div className="flex items-center mb-2">
             <a href="/" className="flex items-center gap-2.5">
-              <span className="pas-mark w-8 h-8 rounded-[9px] grid place-items-center pas-display text-[13px] bg-white/10">
-                T
-              </span>
-              <span className="pas-display text-[15px] text-white">MENARA</span>
+              <img src="/logo-vsp.png" alt="VSP Sport" className="w-9 h-9 object-contain" />
+              <span className="pas-brand-name !text-[16px]">VSP Sport</span>
             </a>
           </div>
           <p className="pas-navsec">Operasional</p>
@@ -893,7 +884,7 @@ function ViewPesanan({
               Pesanan <span className="text-[var(--pas-ink-1)] font-semibold pas-num">{confirmDelete.id}</span> ({confirmDelete.customer_name}) akan dihapus permanen dan tidak bisa dikembalikan.
             </p>
             {isDangerousStatus(confirmDelete) && (
-              <p className="text-[13px] text-[#8a6a00] mt-3 bg-[#FFE500]/15 border border-[#FFE500]/30 rounded-xl px-4 py-2.5 flex items-start gap-1.5">
+              <p className="text-[13px] text-[#9A5A14] mt-3 bg-[#F2762A]/15 border border-[#F2762A]/30 rounded-xl px-4 py-2.5 flex items-start gap-1.5">
                 <AlertTriangle size={14} className="shrink-0 mt-0.5" /> Pesanan ini sedang dalam produksi/pengiriman. Hapus hanya jika ini adalah data testing.
               </p>
             )}
@@ -918,20 +909,20 @@ function ViewPesanan({
       )}
       {/* KPI */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
-        <div className="pas-card pas-kpi pas-bento-kpi p-4 sm:p-5">
-          <p className="text-[13px] text-[var(--pas-muted)]">Total Pesanan</p>
+        <div className="pas-card pas-kpi pas-kpi-hero pas-bento-kpi p-4 sm:p-5">
+          <p className="pas-kpi-label text-[13px]">Total Pesanan</p>
           <div className="flex items-end gap-2.5 mt-2.5">
-            <p className="pas-display pas-num text-[30px] leading-none">{stats.total}</p>
-            <span className="pas-delta up mb-0.5">+2 minggu ini</span>
+            <p className="pas-display pas-num text-[34px] leading-none">{stats.total}</p>
+            <span className="pas-delta mb-0.5">+2 minggu ini</span>
           </div>
         </div>
         <div className="pas-card pas-kpi pas-bento-kpi p-4 sm:p-5">
           <p className="text-[13px] text-[var(--pas-muted)]">Sedang Produksi</p>
           <div className="flex items-end gap-2.5 mt-2.5">
-            <p className="pas-display pas-num text-[30px] leading-none text-[var(--pas-accent)]">
+            <p className="pas-display pas-num text-[30px] leading-none">
               {stats.produksi}
             </p>
-            <span className="pas-delta flat mb-0.5">on track</span>
+            <span className="pas-delta ok mb-0.5">on track</span>
           </div>
         </div>
         <div className="pas-card pas-kpi pas-bento-kpi p-4 sm:p-5">
@@ -943,7 +934,7 @@ function ViewPesanan({
                   ? "pas-display pas-num text-[30px] leading-none text-red-500"
                   : hasWarning
                     ? "pas-display pas-num text-[30px] leading-none text-[var(--pas-orange)]"
-                    : "pas-display pas-num text-[30px] leading-none text-[#8fb0f7]"
+                    : "pas-display pas-num text-[30px] leading-none text-[#3F5BA9]"
               }
             >
               {deadlineAlertCount}
@@ -952,8 +943,8 @@ function ViewPesanan({
               <span
                 className={
                   deadlineInfo.level === "overdue"
-                    ? "pas-delta mb-0.5 bg-red-100 text-red-600"
-                    : "pas-delta mb-0.5 bg-[#C02626]/10 text-[#C02626]"
+                    ? "pas-delta bad mb-0.5"
+                    : "pas-delta ok mb-0.5"
                 }
               >
                 {deadlineInfo.level === "overdue"
@@ -967,7 +958,7 @@ function ViewPesanan({
           <p className="text-[13px] text-[var(--pas-muted)]">Selesai</p>
           <div className="flex items-end gap-2.5 mt-2.5">
             <p className="pas-display pas-num text-[30px] leading-none">{stats.selesai}</p>
-            <span className="pas-delta flat mb-0.5">bulan ini</span>
+            <span className="pas-delta good mb-0.5">bulan ini</span>
           </div>
         </div>
       </section>
@@ -2142,7 +2133,7 @@ function ViewLaporan({ orders }: { orders: OrderData[] }) {
                       role="img"
                       aria-label="Donut proporsi produk"
                     >
-                      <circle cx="60" cy="60" r="46" fill="none" stroke="#ECECEB" strokeWidth="15" />
+                      <circle cx="60" cy="60" r="46" fill="none" stroke="#F0EAE5" strokeWidth="15" />
                       <g transform="rotate(-90 60 60)">{donutSegments}</g>
                     </svg>
                     <div className="pas-donut-center">
@@ -2475,7 +2466,7 @@ function ViewSetting({
   const [testingFonnte, setTestingFonnte] = useState(false);
 
   // Profil Toko
-  const [tokoName, setTokoName] = useState("MENARA");
+  const [tokoName, setTokoName] = useState("VSP Sport");
   const [tokoWhatsapp, setTokoWhatsapp] = useState("");
   const [tokoJamOps, setTokoJamOps] = useState("Senin-Sabtu - 09.00-17.00 WIB");
   const [savingToko, setSavingToko] = useState(false);
@@ -2498,7 +2489,7 @@ function ViewSetting({
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d) {
-          setTokoName(d.name || "MENARA");
+          setTokoName(d.name || "VSP Sport");
           setTokoWhatsapp(d.whatsapp_number || "");
           setTokoJamOps(d.jam_operasional || "Senin-Sabtu - 09.00-17.00 WIB");
         }
@@ -3249,37 +3240,37 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
     <>
       {/* â”€â”€ CSS VARS (cream design system) â”€â”€ */}
       <style>{`
-        .notif-wrap{--cream:#f6f6f4;--cream-2:#f0f0ee;--paper:#ffffff;--ink:#141d17;--ink-2:#3c4a41;--ink-soft:#77857b;--line:#ececeb;--line-2:#f0f0ee;--green:#111113;--green-2:#19582f;--accent:#2c7a4b;--mint:#e7f2ea;--mint-line:#cfe9db;--danger:#c02626;--danger-bg:#fee2e2;--danger-line:#fecaca}
-        .notif-wrap .n-card{background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:0 1px 1px rgba(17,17,19,.03),0 22px 44px -32px rgba(17,17,19,.28)}
+        .notif-wrap{--cream:#F7F6F4;--cream-2:#F2EFEC;--paper:#FFFFFF;--ink:#1B1512;--ink-2:#2A211C;--ink-soft:#8A7C73;--line:#EDE7E2;--line-2:#F3EEEA;--green:#1B1512;--green-2:#D2452A;--accent:#C0392B;--mint:#FCE9DE;--mint-line:#F6D9C9;--danger:#C0392B;--danger-bg:#FDEEE4;--danger-line:#F6D9C9}
+        .notif-wrap .n-card{background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:0 1px 1px rgba(40,25,18,.03),0 22px 44px -32px rgba(40,25,18,.28)}
         .notif-wrap .n-eyebrow{font-size:10.5px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-soft);font-family:var(--font-geist-mono),ui-monospace,monospace}
-        .notif-wrap .n-hero{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(145deg,#0c3119 0%,#16512c 52%,#1d6836 100%);box-shadow:0 30px 70px -40px rgba(17,17,19,.75),inset 0 1px 0 rgba(255,255,255,.1)}
+        .notif-wrap .n-hero{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(145deg,#2B1A13 0%,#7A2A1C 52%,#C0392B 100%);box-shadow:0 30px 70px -40px rgba(40,25,18,.75),inset 0 1px 0 rgba(255,255,255,.1)}
         .notif-wrap .n-hero-glow{position:absolute;inset:auto -8% 40% auto;width:520px;height:520px;background:radial-gradient(circle,rgba(255,246,214),.20),transparent 62%);pointer-events:none}
         .notif-wrap .n-hero-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:100% 36px,36px 100%;mask-image:radial-gradient(120% 90% at 70% 0%,#000 25%,transparent 75%)}
-        .notif-wrap .n-stat{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fff,#fafaf9);padding:18px 18px 16px;transition:transform .22s ease,box-shadow .22s ease}
-        .notif-wrap .n-stat:hover{transform:translateY(-2px);box-shadow:0 18px 34px -26px rgba(17,17,19,.32)}
-        .notif-wrap .n-field{width:100%;background:#fafaf9;border:1px solid var(--line);border-radius:14px;padding:22px 14px 9px;font-size:15px;color:var(--ink);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;font-family:var(--font-geist),system-ui,sans-serif}
-        .notif-wrap .n-field:focus{outline:none;background:#fff;border-color:var(--accent);box-shadow:0 0 0 4px rgba(17,17,19,.11)}
+        .notif-wrap .n-stat{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fff,#FAF7F5);padding:18px 18px 16px;transition:transform .22s ease,box-shadow .22s ease}
+        .notif-wrap .n-stat:hover{transform:translateY(-2px);box-shadow:0 18px 34px -26px rgba(40,25,18,.32)}
+        .notif-wrap .n-field{width:100%;background:#FAF7F5;border:1px solid var(--line);border-radius:14px;padding:22px 14px 9px;font-size:15px;color:var(--ink);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;font-family:var(--font-geist),system-ui,sans-serif}
+        .notif-wrap .n-field:focus{outline:none;background:#fff;border-color:var(--accent);box-shadow:0 0 0 4px rgba(210,69,42,.16)}
         .notif-wrap .n-fw{position:relative}
         .notif-wrap .n-fw label{position:absolute;left:14px;top:8px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);pointer-events:none;transition:color .18s ease;font-family:var(--font-geist-mono),ui-monospace,monospace}
         .notif-wrap .n-fw .n-field:focus + label{color:var(--accent)}
-        .notif-wrap .n-chip{position:relative;border:1px solid var(--line);background:#fafaf9;color:var(--ink-2);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s cubic-bezier(.2,.85,.25,1);font-family:var(--font-geist-mono),ui-monospace,monospace}
-        .notif-wrap .n-chip:hover{transform:translateY(-1px);border-color:#d9d9d6}
-        .notif-wrap .n-chip.on{background:var(--green);border-color:var(--green);color:#f2f2f0;box-shadow:0 8px 18px -12px rgba(17,17,19,.7)}
+        .notif-wrap .n-chip{position:relative;border:1px solid var(--line);background:#FAF7F5;color:var(--ink-2);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s cubic-bezier(.2,.85,.25,1);font-family:var(--font-geist-mono),ui-monospace,monospace}
+        .notif-wrap .n-chip:hover{transform:translateY(-1px);border-color:#E0D6CF}
+        .notif-wrap .n-chip.on{background:var(--green);border-color:var(--green);color:#F2EFEC;box-shadow:0 8px 18px -12px rgba(40,25,18,.7)}
         .notif-wrap .n-btn{border-radius:13px;font-size:14px;font-weight:600;transition:transform .16s ease,background .2s ease,box-shadow .2s ease;font-family:var(--font-geist),system-ui,sans-serif}
-        .notif-wrap .n-btn-primary{background:var(--green);color:#f2f2f0;box-shadow:0 12px 26px -16px rgba(17,17,19,.85)}
+        .notif-wrap .n-btn-primary{background:var(--green);color:#F2EFEC;box-shadow:0 12px 26px -16px rgba(40,25,18,.85)}
         .notif-wrap .n-btn-primary:hover{background:var(--green-2);transform:translateY(-1px)}
         .notif-wrap .n-btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:500}
-        .notif-wrap .n-btn-ghost:hover{background:var(--cream-2);border-color:#d9d9d6}
+        .notif-wrap .n-btn-ghost:hover{background:var(--cream-2);border-color:#E0D6CF}
         .notif-wrap .n-divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
         .notif-wrap .n-dt{position:relative;min-width:72px;padding:12px 4px 10px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(6px);text-align:center;overflow:hidden}
         .notif-wrap .n-dt::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent)}
         .notif-wrap .n-dt b{display:block;font-family:var(--font-geist-mono),monospace;font-size:38px;line-height:1;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
         .notif-wrap .n-dt i{display:block;margin-top:7px;font-style:normal;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5)}
         .notif-wrap .n-colon{align-self:center;font-family:var(--font-geist-mono),monospace;font-size:26px;color:rgba(255,255,255,.3);padding-bottom:14px}
-        .notif-wrap .n-pulse{width:7px;height:7px;border-radius:999px;background:#8ce8ae;box-shadow:0 0 0 0 rgba(255,229,0,.7);animation:npulse 2.2s infinite}
+        .notif-wrap .n-pulse{width:7px;height:7px;border-radius:999px;background:#FFC79E;box-shadow:0 0 0 0 rgba(255,229,0,.7);animation:npulse 2.2s infinite}
         @keyframes npulse{0%{box-shadow:0 0 0 0 rgba(255,229,0,.55)}70%{box-shadow:0 0 0 11px rgba(255,229,0,0)}100%{box-shadow:0 0 0 0 rgba(255,229,0,0)}}
         .notif-wrap .n-switch{width:50px;height:28px;border-radius:999px;background:rgba(255,255,255,.22);position:relative;cursor:pointer;flex:none;transition:background .24s ease;border:1px solid rgba(255,255,255,.2)}
-        .notif-wrap .n-switch.on{background:#3ea364;border-color:rgba(255,255,255,.35)}
+        .notif-wrap .n-switch.on{background:#F2762A;border-color:rgba(255,255,255,.35)}
         .notif-wrap .n-switch span{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.28);transition:transform .26s cubic-bezier(.2,.85,.25,1)}
         .notif-wrap .n-switch.on span{transform:translateX(22px)}
       `}</style>
@@ -3355,7 +3346,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
                 <div className="n-colon">:</div>
                 <div className="n-dt"><b>{cdS}</b><i>Detik</i></div>
               </div>
-              <p className="mt-3.5 text-[12.5px]" style={{ fontFamily: 'var(--font-geist-mono),monospace', color: "#96e8b3" }}>{cdLabel}</p>
+              <p className="mt-3.5 text-[12.5px]" style={{ fontFamily: 'var(--font-geist-mono),monospace', color: "#FFD9C2" }}>{cdLabel}</p>
             </div>
           </div>
         </section>
@@ -3369,7 +3360,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
                 <p className="mt-1 text-[12px]" style={{ color: "var(--ink-soft)" }}>30 hari terakhir</p>
               </div>
               <span className="grid h-8 w-8 place-items-center rounded-[10px]" style={{ background: "var(--mint)", border: "1px solid var(--mint-line)" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111113" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
               </span>
             </div>
             <p className="mt-4" style={{ fontFamily: 'var(--font-geist-mono),monospace', fontSize: 27, fontWeight: 700, letterSpacing: "-.02em" }}>
@@ -3386,7 +3377,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
                 <p className="mt-1 text-[12px]" style={{ color: "var(--ink-soft)" }}>masih berjalan</p>
               </div>
               <span className="grid h-8 w-8 place-items-center rounded-[10px]" style={{ background: "var(--mint)", border: "1px solid var(--mint-line)" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111113" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5" /><path d="M8 2v4M16 2v4M3 10h18" /></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5" /><path d="M8 2v4M16 2v4M3 10h18" /></svg>
               </span>
             </div>
             <p className="mt-4" style={{ fontFamily: 'var(--font-geist-mono),monospace', fontSize: 27, fontWeight: 700, letterSpacing: "-.02em" }}>
@@ -3403,7 +3394,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
                 <p className="mt-1 text-[12px]" style={{ color: "var(--ink-soft)" }}>admin internal</p>
               </div>
               <span className="grid h-8 w-8 place-items-center rounded-[10px]" style={{ background: "var(--mint)", border: "1px solid var(--mint-line)" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111113" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></svg>
               </span>
             </div>
             <p className="mt-4" style={{ fontFamily: 'var(--font-geist-mono),monospace', fontSize: 27, fontWeight: 700, letterSpacing: "-.02em" }}>
@@ -3416,7 +3407,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
         </section>
 
         {/* â”€â”€ SETTINGS â”€â”€ */}
-        <section className="n-card mt-6 p-7 sm:p-9" style={{ background: "linear-gradient(180deg,#fff,#fafaf9)" }}>
+        <section className="n-card mt-6 p-7 sm:p-9" style={{ background: "linear-gradient(180deg,#fff,#FAF7F5)" }}>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="n-eyebrow">Konfigurasi</p>
@@ -3493,7 +3484,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
           {logs.length === 0 ? (
             <div className="grid place-items-center py-16 text-center">
               <div className="grid h-14 w-14 place-items-center rounded-2xl" style={{ background: "var(--cream-2)", border: "1px solid var(--line-2)" }}>
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8a8a8f" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 2" /><circle cx="12" cy="12" r="9" /></svg>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8A7C73" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 2" /><circle cx="12" cy="12" r="9" /></svg>
               </div>
               <p className="mt-4 text-[15px] font-semibold" style={{ color: "var(--ink)" }}>Belum ada pengiriman</p>
               <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>Setelah notifikasi pertama terkirim, waktu, penerima, dan statusnya akan tercatat di sini.</p>
@@ -3520,7 +3511,7 @@ function ViewNotif({ showToast, orders }: { showToast: (msg: string) => void; or
                             Sukses
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[12px]" style={{ color: "#c02626" }}>
+                          <span className="inline-flex items-center gap-1 text-[12px]" style={{ color: "#C0392B" }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
                             Gagal
                           </span>
@@ -3632,8 +3623,8 @@ function DetailSheet({
     setUploadingWo(true);
     setKirimError("");
     try {
-      const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-      setWoPhotos((prev) => [...prev, optimizeDesignUrl(result.url)]);
+      const result = await uploadToCloudinary(file);
+      setWoPhotos((prev) => [...prev, optimizeImageUrl(result.url)]);
     } catch (e) { console.error("[Detail WO] exception", e); setKirimError(e instanceof Error ? e.message : "Upload gagal"); } finally { setUploadingWo(false); }
   };
 
@@ -3732,7 +3723,7 @@ function DetailSheet({
       <div className="pas-panel p-0" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* ── TOPBAR ── */}
         <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(245,245,244,.85)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
-          <button className="w-9 h-9 rounded-[10px] border border-[var(--pas-line)] bg-[var(--pas-surface)] grid place-items-center text-[var(--pas-muted)] hover:text-[var(--pas-ink-1)] hover:border-[rgba(17,17,19,.22)] transition shrink-0" onClick={onClose} aria-label="Kembali">
+          <button className="w-9 h-9 rounded-[10px] border border-[var(--pas-line)] bg-[var(--pas-surface)] grid place-items-center text-[var(--pas-muted)] hover:text-[var(--pas-ink-1)] hover:border-[rgba(40,25,18,.22)] transition shrink-0" onClick={onClose} aria-label="Kembali">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
           <div className="min-w-0 flex-1">
@@ -3745,7 +3736,7 @@ function DetailSheet({
         <div className="flex-1 overflow-y-auto px-5 pt-5 pb-28" style={{ scrollbarColor: "var(--pas-line) transparent" }}>
           {/* ── STATUS HERO ── */}
           <div className="rounded-2xl border border-[var(--pas-line)] bg-[var(--pas-surface)] shadow-[0_1px_3px_rgba(0,0,0,.04),0_4px_12px_rgba(0,0,0,.04)] p-6 flex flex-col items-center text-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-[rgba(17,17,19,.10)] grid place-items-center text-[var(--pas-accent)] text-[22px]">
+            <div className="w-14 h-14 rounded-full bg-[rgba(210,69,42,.12)] grid place-items-center text-[var(--pas-accent)] text-[22px]">
               {order.is_done ? (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
               ) : (
@@ -3765,7 +3756,7 @@ function DetailSheet({
               <div className="pas-display text-[28px] leading-none pas-num text-[var(--pas-accent)]">{pct}%</div>
               <div className="text-[13px] font-semibold text-[var(--pas-ink-2)]">Tahap {step} dari {steps.length}</div>
             </div>
-            <div className="h-[6px] rounded-full bg-[rgba(17,17,19,.08)] overflow-hidden">
+            <div className="h-[6px] rounded-full bg-[rgba(40,25,18,.08)] overflow-hidden">
               <div className="h-full rounded-full bg-[var(--pas-accent)]" style={{ width: `${pct}%`, transition: "width .6s cubic-bezier(.22,1,.36,1)" }} />
             </div>
           </div>
@@ -3796,7 +3787,7 @@ function DetailSheet({
                           background: isDone ? "var(--pas-accent)" : isCur ? "var(--pas-surface)" : "var(--pas-surface)",
                           border: isDone ? "2px solid var(--pas-accent)" : isCur ? "2px solid var(--pas-accent)" : "2px solid var(--pas-line)",
                           color: isDone ? "#fff" : isCur ? "var(--pas-accent)" : "var(--pas-muted)",
-                          boxShadow: isDone ? "none" : isCur ? "0 0 0 4px rgba(17,17,19,.10)" : "none",
+                          boxShadow: isDone ? "none" : isCur ? "0 0 0 4px rgba(210,69,42,.12)" : "none",
                         }}
                       >
                         {isDone ? "" : i + 1}
@@ -3818,7 +3809,7 @@ function DetailSheet({
           {/* ── INFO PESANAN ── */}
           <p className="pas-stencil text-[9px] text-[var(--pas-muted)] mt-6 mb-2">Informasi Pesanan</p>
           <div className="rounded-2xl border border-[var(--pas-line)] bg-[var(--pas-surface)] shadow-[0_1px_3px_rgba(0,0,0,.04)] overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(17,17,19,.03)" }}>
+            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(40,25,18,.03)" }}>
               <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Data Order</span>
             </div>
             <div className="grid grid-cols-2">
@@ -3843,7 +3834,7 @@ function DetailSheet({
                   <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Produk</span>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {order.products!.map((p, pi) => (
-                      <span key={pi} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[rgba(17,17,19,.06)] border border-[rgba(17,17,19,.12)] text-[var(--pas-ink-1)]">
+                      <span key={pi} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[rgba(40,25,18,.06)] border border-[rgba(40,25,18,.12)] text-[var(--pas-ink-1)]">
                         {p.name} <span className="text-[var(--pas-muted)] font-normal">- {p.sizes.reduce((a, s) => a + (s.qty || 0), 0)} pcs</span>
                       </span>
                     ))}
@@ -3876,7 +3867,7 @@ function DetailSheet({
           {/* ── MEDIA ── */}
           <p className="pas-stencil text-[9px] text-[var(--pas-muted)] mt-6 mb-2">Media</p>
           <div className="rounded-2xl border border-[var(--pas-line)] bg-[var(--pas-surface)] shadow-[0_1px_3px_rgba(0,0,0,.04)] overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(17,17,19,.03)" }}>
+            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(40,25,18,.03)" }}>
               <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">File & Foto</span>
             </div>
             <div className="grid grid-cols-2 gap-4 p-4">
@@ -3886,7 +3877,7 @@ function DetailSheet({
                   {(order.design_photos?.length ?? 0) > 0 ? order.design_photos!.map((url, i) => (
                     <button key={i} type="button" onClick={() => setZoomUrl(url)} className="group relative w-[72px] h-[72px] rounded-xl overflow-hidden border border-[var(--pas-line)] hover:border-[var(--pas-accent)] transition" title="Klik untuk memperbesar" aria-label={`Perbesar design ${i + 1}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`Design ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`Design ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <span className="pointer-events-none absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white border border-white/15 opacity-90">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5M11 8v6M8 11h6" /></svg>
                       </span>
@@ -3902,15 +3893,15 @@ function DetailSheet({
                     <div key={i} className="relative w-[72px] h-[72px] rounded-xl overflow-hidden border border-[var(--pas-line)]">
                       <button type="button" onClick={() => setZoomUrl(url)} className="w-full h-full" title="Klik untuk memperbesar" aria-label={`Perbesar WO ${i + 1}`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`WO ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                        <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`WO ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                         <span className="pointer-events-none absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white border border-white/15 opacity-90">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5M11 8v6M8 11h6" /></svg>
                         </span>
                       </button>
                     </div>
                   ))}
-                  <label className="w-[72px] h-[72px] grid place-items-center rounded-xl border-[1.5px] border-dashed border-[var(--pas-line)] hover:border-[var(--pas-accent)] cursor-pointer transition text-[var(--pas-muted)] hover:text-[var(--pas-accent)] hover:bg-[rgba(17,17,19,.04)]">
-                    <input type="file" accept="image/*" className="hidden" disabled={uploadingWo} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleWoUpload(f); e.currentTarget.value = ""; }} />
+                  <label className="w-[72px] h-[72px] grid place-items-center rounded-xl border-[1.5px] border-dashed border-[var(--pas-line)] hover:border-[var(--pas-accent)] cursor-pointer transition text-[var(--pas-muted)] hover:text-[var(--pas-accent)] hover:bg-[rgba(40,25,18,.04)]">
+                    <input type="file" accept={IMAGE_ACCEPT} className="hidden" disabled={uploadingWo} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleWoUpload(f); e.currentTarget.value = ""; }} />
                     <span className="text-[20px] leading-none">{uploadingWo ? "..." : "+"}</span>
                   </label>
                 </div>
@@ -3973,7 +3964,7 @@ function DetailSheet({
         <div className="sticky bottom-0 flex gap-2.5 px-5 py-4 border-t border-[var(--pas-line)]" style={{ background: "linear-gradient(180deg,rgba(245,245,244,0),var(--pas-bg) 30%)" }}>
           <button
             className="flex-1 py-3.5 rounded-[10px] text-[12px] font-bold text-white border-0 cursor-pointer transition-all"
-            style={{ fontFamily: "var(--font-display), system-ui, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: "var(--pas-accent)", boxShadow: "0 2px 8px rgba(17,17,19,.18)" }}
+            style={{ fontFamily: "var(--font-display), system-ui, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: "var(--pas-accent)", boxShadow: "0 2px 8px rgba(40,25,18,.18)" }}
             onClick={save}
             disabled={saving}
           >
@@ -4004,7 +3995,7 @@ function DetailSheet({
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={zoomUrl}
+            src={optimizeImageUrl(zoomUrl, 1600)}
             alt="Zoom preview"
             className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl select-none"
             onClick={(e) => e.stopPropagation()}
@@ -4251,7 +4242,7 @@ function EditSheet({
               <div className="flex flex-wrap gap-2.5 mt-1.5">
                 {designPhotos.map((url, i) => (
                   <div key={i} className="relative w-[76px] h-[76px] group">
-                    <img src={url} alt={`Design ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
+                    <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`Design ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
                     <button type="button" className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition" onClick={() => setDesignPhotos((ps) => ps.filter((_, idx) => idx !== i))}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
@@ -4261,15 +4252,15 @@ function EditSheet({
                   {uploadingDesign ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>}
                 </button>
               </div>
-              <input id="edit-design-photo-input" type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+              <input id="edit-design-photo-input" type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
                 e.target.value = "";
                 if (files.length === 0) return;
                 setUploadingDesign(true);
                 try {
                   for (const file of files) {
-                    const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-                    setDesignPhotos((ps) => [...ps, optimizeDesignUrl(result.url)]);
+                    const result = await uploadToCloudinary(file);
+                    setDesignPhotos((ps) => [...ps, optimizeImageUrl(result.url)]);
                   }
                 } catch (e) { setError(e instanceof Error ? e.message : "Upload gagal."); } finally { setUploadingDesign(false); }
               }} />
@@ -4280,7 +4271,7 @@ function EditSheet({
               <div className="flex flex-wrap gap-2.5 mt-1.5">
                 {woPhotos.map((url, i) => (
                   <div key={i} className="relative w-[76px] h-[76px] group">
-                    <img src={url} alt={`WO ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
+                    <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`WO ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
                     <button type="button" className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition" onClick={() => setWoPhotos((ps) => ps.filter((_, idx) => idx !== i))}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
@@ -4290,15 +4281,15 @@ function EditSheet({
                   {uploadingWo ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>}
                 </button>
               </div>
-              <input id="edit-wo-photo-input" type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+              <input id="edit-wo-photo-input" type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
                 e.target.value = "";
                 if (files.length === 0) return;
                 setUploadingWo(true);
                 try {
                   for (const file of files) {
-                    const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-                    setWoPhotos((ps) => [...ps, optimizeDesignUrl(result.url)]);
+                    const result = await uploadToCloudinary(file);
+                    setWoPhotos((ps) => [...ps, optimizeImageUrl(result.url)]);
                   }
                 } catch (e) { setError(e instanceof Error ? e.message : "Upload gagal."); } finally { setUploadingWo(false); }
               }} />
@@ -4324,7 +4315,7 @@ function EditSheet({
               />
             </label>
           </div>
-          {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
+          {error && <p className="text-[13px] text-[#C0392B]">{error}</p>}
           <button className="pas-btn-accent w-full py-3.5 text-[15px]" disabled={saving}>
             {saving ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
@@ -4629,7 +4620,7 @@ function AddForm({
           {designPhotos.map((url, i) => (
             <div key={i} className="relative w-[76px] h-[76px] group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`Design ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
+              <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`Design ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
               <button type="button" className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition" title="Hapus foto" onClick={() => setDesignPhotos((ps) => ps.filter((_, idx) => idx !== i))}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
@@ -4639,15 +4630,15 @@ function AddForm({
             {uploadingDesign ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>}
           </button>
         </div>
-        <input id="design-photo-input" type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+        <input id="design-photo-input" type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={async (e) => {
             const files = Array.from(e.target.files || []);
             e.target.value = "";
             if (files.length === 0) return;
             setUploadingDesign(true);
             try {
               for (const file of files) {
-                const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-                setDesignPhotos((ps) => [...ps, optimizeDesignUrl(result.url)]);
+                const result = await uploadToCloudinary(file);
+                setDesignPhotos((ps) => [...ps, optimizeImageUrl(result.url)]);
               }
             } catch (e) { console.error("[upload Design] exception", e); setError(e instanceof Error ? e.message : "Upload gagal. Coba lagi."); } finally { setUploadingDesign(false); }
           }}
@@ -4660,7 +4651,7 @@ function AddForm({
           {woPhotos.map((url, i) => (
             <div key={i} className="relative w-[76px] h-[76px] group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`WO ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
+              <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`WO ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
               <button type="button" className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition" title="Hapus foto WO" onClick={() => setWoPhotos((ps) => ps.filter((_, idx) => idx !== i))}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
@@ -4670,15 +4661,15 @@ function AddForm({
             {uploadingWo ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>}
           </button>
         </div>
-        <input id="wo-photo-input" type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+        <input id="wo-photo-input" type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={async (e) => {
             const files = Array.from(e.target.files || []);
             e.target.value = "";
             if (files.length === 0) return;
             setUploadingWo(true);
             try {
               for (const file of files) {
-                const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-                setWoPhotos((ps) => [...ps, optimizeDesignUrl(result.url)]);
+                const result = await uploadToCloudinary(file);
+                setWoPhotos((ps) => [...ps, optimizeImageUrl(result.url)]);
               }
             } catch (e) { console.error("[upload Wo] exception", e); setError(e instanceof Error ? e.message : "Upload gagal. Coba lagi."); } finally { setUploadingWo(false); }
           }}
@@ -4705,7 +4696,7 @@ function AddForm({
           />
         </label>
       </div>
-      {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
+      {error && <p className="text-[13px] text-[#C0392B]">{error}</p>}
       <button className="pas-btn-accent w-full py-3.5 text-[15px]" disabled={saving}>
         {saving ? "Menyimpan..." : "Simpan Pesanan"}
       </button>

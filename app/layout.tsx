@@ -1,19 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { getAppUrl } from "@/lib/app-url";
 import { getBrand } from "@/lib/queries";
 import "./globals.css";
 
 /**
- * Font — Inter (satu keluarga untuk semuanya, sesuai mockup MENARA).
+ * Font — Geist (satu keluarga untuk semuanya, sesuai mockup VSP Sport).
  * --font-display dan --font-mono di globals.css mengikuti --font-sans.
  */
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 /**
@@ -60,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f4" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F6F4" },
     { media: "(prefers-color-scheme: dark)", color: "#0c0c0d" },
   ],
   width: "device-width",
@@ -73,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" suppressHydrationWarning className={inter.variable}>
+    <html lang="id" suppressHydrationWarning className={geist.variable}>
       <body className="antialiased">
         <ThemeProvider
           attribute="class"

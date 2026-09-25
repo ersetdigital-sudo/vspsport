@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { IMAGE_ACCEPT, optimizeImageUrl, uploadToCloudinary } from "@/lib/cloudinary";
 import { MAKLON_STAGES, maklonProgress } from "@/lib/maklon-status";
 import {
   DEFAULT_PRODUCTS,
@@ -15,11 +15,6 @@ import {
   formatShortDateID,
 } from "@/lib/format-date";
 import { Search, AlertTriangle } from "lucide-react";
-
-// Optimasi delivery yang sama seperti upload design lama (f_auto,q_auto)
-function optimizeDesignUrl(url: string): string {
-  return url.includes("/upload/") ? url.replace("/upload/", "/upload/f_auto,q_auto/") : url;
-}
 
 type StepRow = { id: string; name: string; position: number };
 
@@ -221,11 +216,13 @@ export default function MaklonDashboard() {
   return (
     <div className="pas-shell">
       <aside className="pas-side">
-        <a href="/" className="flex items-center gap-3 px-2 pb-5">
-          <img src="/logo-menara.png" alt="MENARA" className="pas-mark w-14 h-14 rounded-[10px] object-contain" />
-          <span className="leading-none">
-            <span className="block pas-display text-[15px] !text-white">MENARA</span>
-            <span className="block text-[11px] !text-white/70 mt-[3px]">Admin Panel</span>
+        <a href="/" className="pas-brand">
+          <span className="pas-brand-mark">
+            <img src="/logo-vsp.png" alt="VSP Sport" />
+          </span>
+          <span className="block text-center">
+            <span className="pas-brand-name">VSP Sport</span>
+            <span className="pas-brand-sub">Admin Panel</span>
           </span>
         </a>
         <p className="pas-navsec">Operasional</p>
@@ -264,8 +261,8 @@ export default function MaklonDashboard() {
         <div className="pas-userbox mt-auto p-3 flex items-center gap-3">
           <span className="pas-avatar pas-avatar-invert">AD</span>
           <span className="leading-tight">
-            <span className="block text-[13.5px] font-semibold">Admin MENARA</span>
-            <span className="block text-[11.5px] opacity-70">admin@menara.id</span>
+            <span className="block text-[13.5px] font-semibold">Admin VSP</span>
+            <span className="block text-[11.5px] opacity-70">admin@vspsport.id</span>
           </span>
         </div>
       </aside>
@@ -274,10 +271,10 @@ export default function MaklonDashboard() {
         <header className="pas-topbar">
           <div className="px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <img src="/logo-menara.png" alt="MENARA" className="pas-mark w-12 h-12 rounded-[9px] object-contain lg:hidden" />
+              <img src="/logo-vsp.png" alt="VSP Sport" className="w-10 h-10 object-contain lg:hidden" />
               <div className="min-w-0">
-                <p className="text-[11px] text-[var(--pas-muted)] leading-none">Operasional</p>
-                <h1 className="pas-display text-[17px] leading-tight mt-1 truncate">Maklon</h1>
+                <p className="pas-kicker">Operasional</p>
+                <h1 className="pas-display pas-title mt-1 truncate">Maklon</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -293,22 +290,22 @@ export default function MaklonDashboard() {
 
         <main className="px-5 sm:px-8 py-7 sm:py-9 w-full">
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
-            <div className="pas-card pas-kpi p-4 sm:p-5">
-              <p className="text-[13px] text-[var(--pas-muted)]">Total Maklon</p>
+            <div className="pas-card pas-kpi pas-kpi-hero p-4 sm:p-5">
+              <p className="pas-kpi-label text-[13px]">Total Maklon</p>
               <div className="flex items-end gap-2.5 mt-2.5">
-                <p className="pas-display pas-num text-[30px] leading-none">{stats.total}</p>
+                <p className="pas-display pas-num text-[34px] leading-none">{stats.total}</p>
               </div>
             </div>
             <div className="pas-card pas-kpi p-4 sm:p-5">
               <p className="text-[13px] text-[var(--pas-muted)]">Sedang Produksi</p>
               <div className="flex items-end gap-2.5 mt-2.5">
-                <p className="pas-display pas-num text-[30px] leading-none text-[var(--pas-accent)]">{stats.produksi}</p>
+                <p className="pas-display pas-num text-[30px] leading-none">{stats.produksi}</p>
               </div>
             </div>
             <div className="pas-card pas-kpi p-4 sm:p-5">
               <p className="text-[13px] text-[var(--pas-muted)]">Siap Dikirim</p>
               <div className="flex items-end gap-2.5 mt-2.5">
-                <p className="pas-display pas-num text-[30px] leading-none text-[#8fb0f7]">{stats.kirim}</p>
+                <p className="pas-display pas-num text-[30px] leading-none text-[#3F5BA9]">{stats.kirim}</p>
               </div>
             </div>
             <div className="pas-card pas-kpi p-4 sm:p-5">
@@ -808,7 +805,7 @@ function AddForm({
           {designPhotos.map((url, i) => (
             <div key={i} className="relative w-[76px] h-[76px] group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`Design ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
+              <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`Design ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
               <button type="button" className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition" title="Hapus foto" onClick={() => setDesignPhotos((ps) => ps.filter((_, idx) => idx !== i))}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
@@ -818,15 +815,15 @@ function AddForm({
             {uploadingDesign ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>}
           </button>
         </div>
-        <input id="maklon-design-photo-input" type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+        <input id="maklon-design-photo-input" type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={async (e) => {
             const files = Array.from(e.target.files || []);
             e.target.value = "";
             if (files.length === 0) return;
             setUploadingDesign(true);
             try {
               for (const file of files) {
-                const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-                setDesignPhotos((ps) => [...ps, optimizeDesignUrl(result.url)]);
+                const result = await uploadToCloudinary(file);
+                setDesignPhotos((ps) => [...ps, optimizeImageUrl(result.url)]);
               }
             } catch (err) {
               setError(err instanceof Error ? err.message : "Upload gagal. Coba lagi.");
@@ -843,7 +840,7 @@ function AddForm({
           {woPhotos.map((url, i) => (
             <div key={i} className="relative w-[76px] h-[76px] group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`WO ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
+              <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`WO ${i + 1}`} className="w-full h-full object-cover rounded-xl border border-[var(--pas-line)]" />
               <button type="button" className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition" title="Hapus foto WO" onClick={() => setWoPhotos((ps) => ps.filter((_, idx) => idx !== i))}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
@@ -853,15 +850,15 @@ function AddForm({
             {uploadingWo ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-3.2-6.9" /></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>}
           </button>
         </div>
-        <input id="maklon-wo-photo-input" type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+        <input id="maklon-wo-photo-input" type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={async (e) => {
             const files = Array.from(e.target.files || []);
             e.target.value = "";
             if (files.length === 0) return;
             setUploadingWo(true);
             try {
               for (const file of files) {
-                const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-                setWoPhotos((ps) => [...ps, optimizeDesignUrl(result.url)]);
+                const result = await uploadToCloudinary(file);
+                setWoPhotos((ps) => [...ps, optimizeImageUrl(result.url)]);
               }
             } catch (err) {
               setError(err instanceof Error ? err.message : "Upload gagal. Coba lagi.");
@@ -904,7 +901,7 @@ function AddForm({
         />
       </label>
 
-      {error && <p className="text-[13px] text-[#f87171]">{error}</p>}
+      {error && <p className="text-[13px] text-[#C0392B]">{error}</p>}
 
       <div className="flex gap-3">
         <button
@@ -986,8 +983,8 @@ function DetailSheet({
     setUploadingWo(true);
     setError("");
     try {
-      const result = await uploadToCloudinary(file, { folder: "menara-design-preview" });
-      setWoPhotos((prev) => [...prev, optimizeDesignUrl(result.url)]);
+      const result = await uploadToCloudinary(file);
+      setWoPhotos((prev) => [...prev, optimizeImageUrl(result.url)]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload gagal");
     } finally {
@@ -1095,7 +1092,7 @@ function DetailSheet({
           style={{ background: "rgba(245,245,244,.85)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
         >
           <button
-            className="w-9 h-9 rounded-[10px] border border-[var(--pas-line)] bg-[var(--pas-surface)] grid place-items-center text-[var(--pas-muted)] hover:text-[var(--pas-ink-1)] hover:border-[rgba(17,17,19,.22)] transition shrink-0"
+            className="w-9 h-9 rounded-[10px] border border-[var(--pas-line)] bg-[var(--pas-surface)] grid place-items-center text-[var(--pas-muted)] hover:text-[var(--pas-ink-1)] hover:border-[rgba(40,25,18,.22)] transition shrink-0"
             onClick={onClose}
             aria-label="Kembali"
           >
@@ -1120,7 +1117,7 @@ function DetailSheet({
         <div className="flex-1 overflow-y-auto px-5 pt-5 pb-28" style={{ scrollbarColor: "var(--pas-line) transparent" }}>
           {/* STATUS HERO */}
           <div className="rounded-2xl border border-[var(--pas-line)] bg-[var(--pas-surface)] shadow-[0_1px_3px_rgba(0,0,0,.04),0_4px_12px_rgba(0,0,0,.04)] p-6 flex flex-col items-center text-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-[rgba(17,17,19,.10)] grid place-items-center text-[var(--pas-accent)] text-[22px]">
+            <div className="w-14 h-14 rounded-full bg-[rgba(210,69,42,.12)] grid place-items-center text-[var(--pas-accent)] text-[22px]">
               {order.is_done ? (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
               ) : (
@@ -1144,7 +1141,7 @@ function DetailSheet({
               <div className="pas-display text-[28px] leading-none pas-num text-[var(--pas-accent)]">{pct}%</div>
               <div className="text-[13px] font-semibold text-[var(--pas-ink-2)]">Tahap {step} dari {totalSteps}</div>
             </div>
-            <div className="h-[6px] rounded-full bg-[rgba(17,17,19,.08)] overflow-hidden">
+            <div className="h-[6px] rounded-full bg-[rgba(40,25,18,.08)] overflow-hidden">
               <div className="h-full rounded-full bg-[var(--pas-accent)]" style={{ width: `${pct}%`, transition: "width .6s cubic-bezier(.22,1,.36,1)" }} />
             </div>
           </div>
@@ -1175,7 +1172,7 @@ function DetailSheet({
                           background: isDone ? "var(--pas-accent)" : "var(--pas-surface)",
                           border: isDone || isCur ? "2px solid var(--pas-accent)" : "2px solid var(--pas-line)",
                           color: isDone ? "#fff" : isCur ? "var(--pas-accent)" : "var(--pas-muted)",
-                          boxShadow: isDone ? "none" : isCur ? "0 0 0 4px rgba(17,17,19,.10)" : "none",
+                          boxShadow: isDone ? "none" : isCur ? "0 0 0 4px rgba(210,69,42,.12)" : "none",
                         }}
                       >
                         {isDone ? "" : i + 1}
@@ -1197,7 +1194,7 @@ function DetailSheet({
           {/* INFO MAKLON */}
           <p className="pas-stencil text-[9px] text-[var(--pas-muted)] mt-6 mb-2">Informasi Maklon</p>
           <div className="rounded-2xl border border-[var(--pas-line)] bg-[var(--pas-surface)] shadow-[0_1px_3px_rgba(0,0,0,.04)] overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(17,17,19,.03)" }}>
+            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(40,25,18,.03)" }}>
               <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Data Order</span>
             </div>
             <div className="grid grid-cols-2">
@@ -1230,7 +1227,7 @@ function DetailSheet({
                   <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Produk</span>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {order.products!.map((p, pi) => (
-                      <span key={pi} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[rgba(17,17,19,.06)] border border-[rgba(17,17,19,.12)] text-[var(--pas-ink-1)]">
+                      <span key={pi} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold bg-[rgba(40,25,18,.06)] border border-[rgba(40,25,18,.12)] text-[var(--pas-ink-1)]">
                         {p.name} <span className="text-[var(--pas-muted)] font-normal">- {p.sizes.reduce((a, s) => a + (s.qty || 0), 0)} pcs</span>
                       </span>
                     ))}
@@ -1270,7 +1267,7 @@ function DetailSheet({
           {/* MEDIA */}
           <p className="pas-stencil text-[9px] text-[var(--pas-muted)] mt-6 mb-2">Media</p>
           <div className="rounded-2xl border border-[var(--pas-line)] bg-[var(--pas-surface)] shadow-[0_1px_3px_rgba(0,0,0,.04)] overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(17,17,19,.03)" }}>
+            <div className="px-4 py-2.5 border-b border-[var(--pas-line)]" style={{ background: "rgba(40,25,18,.03)" }}>
               <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">File & Foto</span>
             </div>
             <div className="grid grid-cols-2 gap-4 p-4">
@@ -1280,7 +1277,7 @@ function DetailSheet({
                   {(order.design_photos?.length ?? 0) > 0 ? order.design_photos!.map((url, i) => (
                     <button key={i} type="button" onClick={() => setZoomUrl(url)} className="group relative w-[72px] h-[72px] rounded-xl overflow-hidden border border-[var(--pas-line)] hover:border-[var(--pas-accent)] transition" title="Klik untuk memperbesar" aria-label={`Perbesar design ${i + 1}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`Design ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`Design ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <span className="pointer-events-none absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white border border-white/15 opacity-90">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5M11 8v6M8 11h6" /></svg>
                       </span>
@@ -1296,15 +1293,15 @@ function DetailSheet({
                     <div key={i} className="relative w-[72px] h-[72px] rounded-xl overflow-hidden border border-[var(--pas-line)]">
                       <button type="button" onClick={() => setZoomUrl(url)} className="w-full h-full" title="Klik untuk memperbesar" aria-label={`Perbesar WO ${i + 1}`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`WO ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                        <img src={optimizeImageUrl(url, 320)} loading="lazy" alt={`WO ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                         <span className="pointer-events-none absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white border border-white/15 opacity-90">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5M11 8v6M8 11h6" /></svg>
                         </span>
                       </button>
                     </div>
                   ))}
-                  <label className="w-[72px] h-[72px] grid place-items-center rounded-xl border-[1.5px] border-dashed border-[var(--pas-line)] hover:border-[var(--pas-accent)] cursor-pointer transition text-[var(--pas-muted)] hover:text-[var(--pas-accent)] hover:bg-[rgba(17,17,19,.04)]">
-                    <input type="file" accept="image/*" className="hidden" disabled={uploadingWo} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleWoUpload(f); e.currentTarget.value = ""; }} />
+                  <label className="w-[72px] h-[72px] grid place-items-center rounded-xl border-[1.5px] border-dashed border-[var(--pas-line)] hover:border-[var(--pas-accent)] cursor-pointer transition text-[var(--pas-muted)] hover:text-[var(--pas-accent)] hover:bg-[rgba(40,25,18,.04)]">
+                    <input type="file" accept={IMAGE_ACCEPT} className="hidden" disabled={uploadingWo} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleWoUpload(f); e.currentTarget.value = ""; }} />
                     <span className="text-[20px] leading-none">{uploadingWo ? "..." : "+"}</span>
                   </label>
                 </div>
@@ -1361,7 +1358,7 @@ function DetailSheet({
         <div className="sticky bottom-0 flex gap-2.5 px-5 py-4 border-t border-[var(--pas-line)]" style={{ background: "linear-gradient(180deg,rgba(245,245,244,0),var(--pas-bg) 30%)" }}>
           <button
             className="flex-1 py-3.5 rounded-[10px] text-[12px] font-bold text-white border-0 cursor-pointer transition-all"
-            style={{ fontFamily: "var(--font-display), system-ui, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: "var(--pas-accent)", boxShadow: "0 2px 8px rgba(17,17,19,.18)" }}
+            style={{ fontFamily: "var(--font-display), system-ui, sans-serif", letterSpacing: ".04em", textTransform: "uppercase", background: "var(--pas-accent)", boxShadow: "0 2px 8px rgba(40,25,18,.18)" }}
             onClick={save}
             disabled={saving}
           >
@@ -1392,7 +1389,7 @@ function DetailSheet({
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={zoomUrl}
+            src={optimizeImageUrl(zoomUrl, 1600)}
             alt="Zoom preview"
             className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl select-none"
             onClick={(e) => e.stopPropagation()}
@@ -1408,7 +1405,7 @@ function DetailSheet({
             <p className="text-[14px] text-[var(--pas-muted)] mt-2 leading-relaxed">
               Maklon <span className="text-[var(--pas-ink-1)] font-semibold pas-num">{order.id}</span> ({order.customer_name}) akan dihapus permanen.
             </p>
-            <p className="text-[13px] text-[#8a6a00] mt-3 bg-[#FFE500]/15 border border-[#FFE500]/30 rounded-xl px-4 py-2.5 flex items-start gap-1.5">
+            <p className="text-[13px] text-[#9A5A14] mt-3 bg-[#F2762A]/15 border border-[#F2762A]/30 rounded-xl px-4 py-2.5 flex items-start gap-1.5">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" /> Data tidak bisa dikembalikan.
             </p>
             <div className="flex gap-3 mt-5">

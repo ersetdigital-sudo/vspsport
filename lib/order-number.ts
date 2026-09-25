@@ -6,7 +6,7 @@
  * maklon bisa diprediksi. Sekarang keduanya memakai fungsi di sini.
  *
  * Format: `<PREFIX><YYMMDD><4 karakter acak>`
- *   MENARA260921K4XQ  → pesanan jersey
+ *   VSP260921K4XQ     → pesanan jersey
  *   MKL260921K4XQ     → pesanan maklon
  *
  * Charset membuang karakter yang sering salah ketik pelanggan
@@ -21,8 +21,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /** Charset aman: tanpa B, I, O, L, 0, 1. */
 export const ORDER_NUMBER_CHARSET = "ACDEFGHJKMNPQRSTUVWXYZ23456789";
 
-export const ORDER_NUMBER_PREFIX = "MENARA";
+export const ORDER_NUMBER_PREFIX = "VSP";
 export const MAKLON_NUMBER_PREFIX = "MKL";
+
+/**
+ * Prefix lama yang tetap harus dikenali saat memvalidasi nomor.
+ *
+ * Nomor yang sudah beredar — dikirim ke pelanggan lewat WhatsApp dan tersimpan
+ * di tabel `orders` — memakai prefix `MENARA`. Kalau prefix baru saja yang
+ * diizinkan regex, pesanan lama itu jadi tidak bisa dilacak sama sekali.
+ * Jadi prefix baru dipakai untuk nomor yang baru dibuat, sedangkan yang lama
+ * tetap diterima.
+ */
+export const LEGACY_ORDER_NUMBER_PREFIXES = ["MENARA"];
 
 /** Panjang bagian acak. */
 const CODE_LENGTH = 4;
@@ -32,11 +43,16 @@ const MAX_ATTEMPTS = 5;
 
 /**
  * Validasi format nomor pesanan.
- * Format lama `MENARA-260921-001` tetap diterima supaya pesanan yang dibuat
- * sebelum format sekarang masih bisa dicari di halaman tracking.
+ *
+ * Dua bentuk diterima:
+ * - sekarang: `<PREFIX><YYMMDD><4 karakter>` (prefix baru + MKL untuk maklon)
+ * - lama: `<PREFIX>-<YYMMDD>-<3 digit>` — termasuk prefix lama MENARA, supaya
+ *   pesanan yang dibuat sebelum rebrand masih bisa dicari di halaman tracking.
  */
+const JERSEY_PREFIXES = [ORDER_NUMBER_PREFIX, ...LEGACY_ORDER_NUMBER_PREFIXES];
+
 export const ORDER_NUMBER_REGEX = new RegExp(
-  `^(${ORDER_NUMBER_PREFIX}|${MAKLON_NUMBER_PREFIX})\\d{6}[${ORDER_NUMBER_CHARSET}]{${CODE_LENGTH}}$|^${ORDER_NUMBER_PREFIX}-\\d{6}-\\d{3}$`
+  `^(${ORDER_NUMBER_PREFIX}|${MAKLON_NUMBER_PREFIX})\\d{6}[${ORDER_NUMBER_CHARSET}]{${CODE_LENGTH}}$|^(${JERSEY_PREFIXES.join("|")})-\\d{6}-\\d{3}$`
 );
 
 /** Tabel yang dicek saat memastikan nomor belum terpakai. */
@@ -71,7 +87,7 @@ function randomCode(length = CODE_LENGTH): string {
 export interface GenerateOrderNumberOptions {
   /** Tabel untuk pengecekan bentrok. Default `orders`. */
   table?: OrderNumberTable;
-  /** Prefix nomor. Default `MENARA`. */
+  /** Prefix nomor. Default `VSP`. */
   prefix?: string;
   /** Tanggal acuan (untuk pengujian). Default sekarang. */
   date?: Date;

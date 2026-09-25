@@ -28,6 +28,20 @@ where id = 1
 
 -- Kalau baris `brand` belum ada sama sekali (database baru yang belum menjalankan
 -- 0003), buat baris minimalnya supaya halaman tracking tidak jatuh ke fallback.
-insert into public.brand (id, name, monogram, whatsapp_number, logo_path)
-values (1, 'MENARA', 'MENARA', '628115491117', '/logo-menara.png')
+--
+-- `tagline` dan `description` NOT NULL tanpa default, jadi keduanya WAJIB ada di
+-- daftar kolom — `on conflict (id) do nothing` tidak menyelamatkan: Postgres tetap
+-- memeriksa NOT NULL pada baris yang diajukan sebelum konflik id-nya ketemu,
+-- sehingga versi lama (tanpa dua kolom ini) selalu gagal 23502 di database mana
+-- pun yang baris brand-nya sudah ada.
+insert into public.brand (id, name, monogram, tagline, description, whatsapp_number, logo_path)
+values (
+  1,
+  'MENARA',
+  'MENARA',
+  E'Pabrik Jersey Custom Full Printing.\nDesain bebas, harga pabrik, kirim se-Indonesia.',
+  'MENARA — pabrik jersey custom full printing. Desain bebas, harga mulai 85rb, kirim se-Indonesia. Konsultasi gratis via WhatsApp.',
+  '628115491117',
+  '/logo-menara.png'
+)
 on conflict (id) do nothing;

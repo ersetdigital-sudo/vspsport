@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { destroyCloudinaryAssets } from "@/lib/cloudinary-server";
 import { cookies } from "next/headers";
 
 export async function DELETE(
@@ -15,9 +16,10 @@ export async function DELETE(
 
   const supabase = createServiceClient();
 
+  // Sama seperti pesanan jersey — lihat catatan di app/api/pesanan/orders/[id]/route.ts.
   const { data: existing, error: fetchErr } = await supabase
     .from("maklon_orders")
-    .select("id")
+    .select("id, design_photos, wo_photos")
     .eq("order_number", id)
     .maybeSingle();
 
@@ -36,6 +38,12 @@ export async function DELETE(
   if (orderErr) {
     return NextResponse.json({ error: orderErr.message }, { status: 500 });
   }
+
+  const photos = [
+    ...(Array.isArray(existing.design_photos) ? existing.design_photos : []),
+    ...(Array.isArray(existing.wo_photos) ? existing.wo_photos : []),
+  ].filter((u): u is string => typeof u === "string");
+  if (photos.length > 0) await destroyCloudinaryAssets(photos);
 
   return NextResponse.json({ ok: true });
 }

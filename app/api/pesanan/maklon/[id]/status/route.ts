@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
+import { removedCloudinaryUrls } from "@/lib/cloudinary";
+import { destroyCloudinaryAssets } from "@/lib/cloudinary-server";
 import { triggerMaklonStageNotification } from "@/lib/fonnte";
 import {
   MAKLON_FINAL_STEP,
@@ -82,6 +84,20 @@ export async function PATCH(
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
+
+  // Sama seperti pesanan jersey: foto yang dibuang operator dihapus dari
+  // Cloudinary, dan hanya setelah update database berhasil.
+  const removedPhotos = [
+    ...removedCloudinaryUrls(
+      existing.design_photos,
+      updateData.design_photos ?? existing.design_photos
+    ),
+    ...removedCloudinaryUrls(
+      existing.wo_photos,
+      updateData.wo_photos ?? existing.wo_photos
+    ),
+  ];
+  if (removedPhotos.length > 0) await destroyCloudinaryAssets(removedPhotos);
 
   if (current_step !== undefined && updatedOrder) {
     // History harus sama persis dengan status yang tersimpan

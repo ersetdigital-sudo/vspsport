@@ -9,7 +9,7 @@
 import type { Brand } from "@/lib/types";
 
 /**
- * Nomor WhatsApp resmi MENARA — satu-satunya tempat nomor cadangan ditulis.
+ * Nomor WhatsApp resmi VSP Sport — satu-satunya tempat nomor cadangan ditulis.
  *
  * Dipakai halaman tracking & pesan WhatsApp saat nilai dari tabel `brand`
  * belum/tidak terbaca (database tidak terjangkau). Nomor yang tampil saat
@@ -27,12 +27,12 @@ export const WA_NUMBER = "628115491117";
 export const JAM_OPERASIONAL = "Senin–Sabtu · 09.00–17.00 WIB";
 
 export const brand: Brand = {
-  name: "MENARA",
-  monogram: "MENARA",
+  name: "VSP Sport",
+  monogram: "VSP",
   tagline:
     "Tempat Bikin Jersey Futsal Custom.\nDesain bebas, harga pabrik, kirim se-Indonesia.",
   description:
-    "MENARA — tempat bikin jersey futsal custom full printing. Desain bebas, harga mulai 85rb, kirim se-Indonesia. Konsultasi gratis via WhatsApp.",
+    "VSP Sport — tempat bikin jersey futsal custom full printing. Desain bebas, harga mulai 85rb, kirim se-Indonesia. Konsultasi gratis via WhatsApp.",
   whatsappNumber: WA_NUMBER,
-  logoPath: "/logo-menara.png",
+  logoPath: "/logo-vsp.png",
 };

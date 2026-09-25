@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
+import { removedCloudinaryUrls } from "@/lib/cloudinary";
+import { destroyCloudinaryAssets } from "@/lib/cloudinary-server";
 import { triggerStageNotification, type NotificationTriggerStatus } from "@/lib/fonnte";
 import { STATUS_TO_STAGE, statusFromStep } from "@/lib/order-status";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -133,6 +135,23 @@ export async function PATCH(
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
+
+  // Foto yang benar-benar dibuang operator ikut dihapus dari Cloudinary, supaya
+  // aset tidak menumpuk jadi file yatim dan kredit habis percuma. Perbandingan
+  // memakai public_id, dan hanya dijalankan setelah update database berhasil —
+  // kalau simpan gagal, foto lama masih dirujuk, jadi tidak boleh dihapus.
+  // Kegagalan hapus tidak menggagalkan permintaan (lihat destroyCloudinaryAssets).
+  const removedPhotos = [
+    ...removedCloudinaryUrls(
+      existing.design_photos,
+      updateData.design_photos ?? existing.design_photos
+    ),
+    ...removedCloudinaryUrls(
+      existing.wo_photos,
+      updateData.wo_photos ?? existing.wo_photos
+    ),
+  ];
+  if (removedPhotos.length > 0) await destroyCloudinaryAssets(removedPhotos);
 
   // Insert history entry using the UUID from the updated row
   let historyError: string | null = null;
