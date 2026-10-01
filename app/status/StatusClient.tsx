@@ -24,6 +24,44 @@ import { resolveStepOrder, type StepOrder } from "@/lib/step-order";
 import { trackErrorMessage } from "@/lib/utils";
 import type { StatusInitial } from "@/lib/status-server";
 
+/**
+ * Kerangka kartu progres — ditampilkan selama data pesanan belum siap dan
+ * customer TIDAK sedang diminta verifikasi HP.
+ *
+ * Kenapa perlu: dulu bagian ini tidak merender apa pun, jadi kalau `initial`
+ * dari server kosong (URL tanpa token) halaman tampak kosong sepersekian detik
+ * sebelum modal verifikasi/isi pesanan muncul — "blank dulu baru muncul".
+ * Sekarang kerangkanya sudah ada sejak render pertama, jadi yang berubah hanya
+ * isinya.
+ */
+function StatusLoadingCard() {
+  return (
+    <main
+      className="mx-auto w-full max-w-3xl px-4 pb-20 sm:px-6 pt-7 sm:pt-12"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="dpo-card p-5 sm:p-6 animate-pulse">
+        <div className="h-3.5 w-40 rounded-full bg-white/[.08]" />
+        <div className="mt-3.5 h-8 w-[min(100%,320px)] rounded-xl bg-white/[.1]" />
+        <div className="mt-6 h-2.5 w-full rounded-full bg-white/[.06]" />
+        <div className="mt-2.5 flex justify-between">
+          <div className="h-3 w-16 rounded-full bg-white/[.06]" />
+          <div className="h-3 w-16 rounded-full bg-white/[.06]" />
+        </div>
+      </div>
+      <div className="dpo-card mt-9 p-5 sm:p-6 animate-pulse">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="mb-2.5 h-12 rounded-xl bg-white/[.05] last:mb-0" />
+        ))}
+      </div>
+      <p className="mt-6 text-center text-[12.5px] text-[#7E6F66]">
+        Memuat progres pesanan…
+      </p>
+    </main>
+  );
+}
+
 const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 const SPIN_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/></svg>';
 
@@ -117,7 +155,19 @@ export default function StatusClient({
   const [phone, setPhone] = useState("");
   const [verifyError, setVerifyError] = useState("");
   const [verifying, setVerifying] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  /**
+   * Kartu verifikasi HP ditampilkan SEJAK render pertama (server + client
+   * menghitung nilai yang sama, jadi tidak ada hydration mismatch), bukan
+   * menunggu useEffect. Kalau `initial` kosong berarti server belum punya bukti
+   * kepemilikan pesanan — tanpa token, verifikasi HP memang langkah berikutnya,
+   * jadi tampilkan langsung alih-alih halaman kosong.
+   *
+   * Visitor yang benar-benar sudah punya token sesi di browser (sessionStorage)
+   * akan langsung melihat isi pesanan begitu token itu terbaca — kartu ini cuma
+   * tampil sekejap. Pesanan yang dibuka dari link WA / setelah verifikasi di
+   * /track sudah punya `initial` dari server, jadi layar ini tidak muncul.
+   */
+  const [showPhoneModal, setShowPhoneModal] = useState(!initial);
 
   const [order, setOrder] = useState<any>(initial?.order ?? null);
   const [history, setHistory] = useState<any[]>(initial?.history ?? []);
@@ -363,8 +413,12 @@ export default function StatusClient({
               </div>
             </header>
 
-            {/* Phone verification modal */}
-            {showPhoneModal && (
+            {/* Phone verification modal — atau kerangka progres selama data
+                pesanan masih diambil dari server. Salah satu SELALU tampil,
+                jadi halaman ini tidak pernah kosong. */}
+            {!showPhoneModal ? (
+              <StatusLoadingCard />
+            ) : (
               <main className="max-w-3xl mx-auto px-5 sm:px-8 pt-10">
                 <div className="trk-card p-5 sm:p-7 max-w-md mx-auto">
                   <p className="trk-display text-[20px] text-center mb-2">Verifikasi Pesanan</p>

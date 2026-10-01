@@ -11,17 +11,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // Urutan tahap dibaca BERSAMAAN dengan daftarnya, bukan sesudahnya: endpoint
+  // ini dipanggil tiap kali dashboard menyegarkan diri, jadi satu round trip
+  // yang dihemat terasa langsung di daftar pesanannya.
+  const [ordersRes, stepOrder] = await Promise.all([
+    supabase.from("orders").select("*").order("created_at", { ascending: false }),
+    loadStepOrder(supabase),
+  ]);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (ordersRes.error) {
+    return NextResponse.json({ error: ordersRes.error.message }, { status: 500 });
   }
 
-  const stepOrder = await loadStepOrder(supabase);
-  const rows = data || [];
+  const rows = ordersRes.data || [];
   const doneAtByUuid = await fetchDoneAt(
     supabase,
     rows.map((row: any) => row.id)

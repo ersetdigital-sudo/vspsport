@@ -73,7 +73,15 @@ export default function TrackForm({
         sessionStorage.setItem(`vsp_token_${id}`, data.token);
       }
       sessionStorage.setItem(`vsp_verified_${id}`, JSON.stringify(data));
-      router.push(`/status?order=${encodeURIComponent(id)}`);
+
+      // Token ikut dibawa di URL supaya `/status` bisa membacanya di SERVER
+      // (lib/status-server.ts) dan progres pesanannya sudah ada di HTML pertama.
+      // Tanpa ini halaman status harus menunggu JS jalan → fetch sesi → fetch
+      // riwayat, dan customer sempat melihat halaman kosong.
+      const target = data.token
+        ? `/status?order=${encodeURIComponent(id)}&token=${encodeURIComponent(data.token)}`
+        : `/status?order=${encodeURIComponent(id)}`;
+      router.push(target);
     } catch {
       showErr("Terjadi kesalahan. Coba lagi.");
       setLoading(false);

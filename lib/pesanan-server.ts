@@ -33,14 +33,17 @@ export async function loadPesananDashboardInitial(): Promise<PesananDashboardIni
     const supabase = await getAdminDb();
     if (!supabase) return null;
 
-    const [ordersRes, stepsRes] = await Promise.all([
+    // `loadStepOrder` tidak bergantung pada hasil dua query di atas, jadi ikut
+    // dijalankan bersamaan — dulu ia menunggu berurutan, dan tiap round trip ke
+    // database terasa sebagai halaman yang "blank dulu".
+    const [ordersRes, stepsRes, stepOrder] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("production_steps").select("*").order("position", { ascending: true }),
+      loadStepOrder(supabase),
     ]);
 
     if (ordersRes.error || !ordersRes.data) return null;
 
-    const stepOrder = await loadStepOrder(supabase);
     const rows = ordersRes.data;
     const doneAtByUuid = await fetchDoneAt(
       supabase,
