@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { IMAGE_ACCEPT, optimizeImageUrl, uploadToCloudinary } from "@/lib/cloudinary";
 import { MAKLON_STAGES, maklonProgress } from "@/lib/maklon-status";
 import {
@@ -150,6 +152,7 @@ export default function MaklonDashboard({
    */
   initial?: MaklonDashboardInitial | null;
 } = {}) {
+  const router = useRouter();
   const [orders, setOrders] = useState<OrderData[]>(initial?.orders ?? []);
   const [loading, setLoading] = useState(!initial);
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -159,11 +162,17 @@ export default function MaklonDashboard({
   const [deleteTarget, setDeleteTarget] = useState<OrderData | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [steps, setSteps] = useState<StepRow[]>(
     initial?.steps?.length ? initial.steps : DEFAULT_STEPS
   );
+
+  const handleLogout = async () => {
+    await fetch("/api/pesanan/auth", { method: "DELETE" });
+    router.push("/login");
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -319,19 +328,29 @@ export default function MaklonDashboard({
 
       <div className="flex-1 min-w-0">
         <header className="pas-topbar">
-          <div className="px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <img src="/logo-vsp.png" alt="VSP Sport" className="w-10 h-10 object-contain lg:hidden" />
+          <div className="px-4 sm:px-8 h-16 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Logo tidak dipakai di topbar ponsel — logo brand hidup di
+                  menu/drawer, sama seperti dashboard Pesanan. */}
+              <button
+                className="lg:hidden -ml-1.5 shrink-0 p-2.5 rounded-lg border border-[var(--pas-line)] text-[var(--pas-muted)] hover:text-[var(--pas-ink-1)] hover:bg-[var(--pas-surface-2)] transition"
+                onClick={() => setShowMobileNav(true)}
+                aria-label="Buka menu"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
               <div className="min-w-0">
-                <p className="pas-kicker">Operasional</p>
+                <p className="pas-kicker truncate">Operasional</p>
                 <h1 className="pas-display pas-title mt-1 truncate">Maklon</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="hidden lg:inline text-[12.5px] text-[var(--pas-muted)]">
                 {formatShortDateID(new Date())}
               </span>
-              <button onClick={() => setShowAdd(true)} className="pas-btn-accent px-3.5 py-2.5 text-[14px] sm:px-4">
+              <button onClick={() => setShowAdd(true)} className="pas-btn-accent whitespace-nowrap px-3 py-2.5 text-[13px] sm:px-4 sm:text-[14px]">
                 <span className="sm:inline">+ </span>Maklon
               </button>
             </div>
@@ -564,6 +583,75 @@ export default function MaklonDashboard({
           )}
         </main>
       </div>
+
+      {/* ── MOBILE NAV DRAWER ── */}
+      <Sheet open={showMobileNav} onOpenChange={setShowMobileNav}>
+        <SheetContent side="left" className="p-5 bg-[#1E1512] text-white border-r border-white/10 w-[280px] overflow-y-auto flex flex-col [&>button]:text-white/50 [&>button]:hover:text-white [&>button]:hover:bg-white/10 [&>button]:rounded-lg [&>button]:p-2 [&>button]:transition">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          {/* Drawer header */}
+          <div className="flex items-center mb-2">
+            <a href="/" className="flex items-center gap-3">
+              <img src="/logo-vsp.png" alt="VSP Sport" className="w-11 h-11 object-contain" />
+              <span className="leading-none">
+                <span className="pas-brand-name !text-[16px]">VSP Sport</span>
+                <span className="pas-brand-sub">Admin Panel</span>
+              </span>
+            </a>
+          </div>
+          {/* Menu ini pindah HALAMAN (bukan ganti tab), jadi memakai Link +
+              prefetch seperti sidebar — kerangka halaman tampil seketika. */}
+          <p className="pas-navsec">Operasional</p>
+          <nav className="flex flex-col gap-1">
+            <Link className="pas-navlink" href="/pesanan/orders" prefetch>
+              <span className="pas-ic"><NavIcon name="pesanan" /></span> Pesanan
+            </Link>
+            <Link className="pas-navlink on" href="/pesanan/maklon" prefetch>
+              <span className="pas-ic"><NavIcon name="maklon" /></span> Maklon
+              {orders.length > 0 && (
+                <em className="pas-badge-y ml-auto">{orders.length}</em>
+              )}
+            </Link>
+            <Link className="pas-navlink" href="/pesanan/orders#jadwal" prefetch>
+              <span className="pas-ic"><NavIcon name="jadwal" /></span> Jadwal Produksi
+            </Link>
+            <Link className="pas-navlink" href="/pesanan/orders#kirim" prefetch>
+              <span className="pas-ic"><NavIcon name="kirim" /></span> Pengiriman
+            </Link>
+          </nav>
+          <p className="pas-navsec">Data</p>
+          <nav className="flex flex-col gap-1">
+            <Link className="pas-navlink" href="/pesanan/orders#customer" prefetch>
+              <span className="pas-ic"><NavIcon name="customer" /></span> Customer
+            </Link>
+            <Link className="pas-navlink" href="/pesanan/orders#laporan" prefetch>
+              <span className="pas-ic"><NavIcon name="laporan" /></span> Laporan
+            </Link>
+            <Link className="pas-navlink" href="/pesanan/orders#notif" prefetch>
+              <span className="pas-ic"><NavIcon name="notif" /></span> Notifikasi
+            </Link>
+            <Link className="pas-navlink" href="/pesanan/orders#setting" prefetch>
+              <span className="pas-ic"><NavIcon name="setting" /></span> Pengaturan
+            </Link>
+          </nav>
+
+          <div className="pas-userbox mt-6 p-3 flex items-center gap-3">
+            <span className="pas-avatar pas-avatar-invert">AD</span>
+            <span className="leading-tight min-w-0">
+              <span className="block text-[13.5px] font-semibold truncate">Admin VSP</span>
+              <span className="block text-[11.5px] text-white/65 truncate">admin@vspsport.id</span>
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              setShowMobileNav(false);
+              handleLogout();
+            }}
+            className="pas-btn-ghost mt-3 w-full px-3 py-3 text-[13.5px] text-[var(--pas-muted)]"
+          >
+            Keluar
+          </button>
+        </SheetContent>
+      </Sheet>
 
       {openId && (
         <DetailSheet

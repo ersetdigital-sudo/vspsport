@@ -2473,10 +2473,11 @@
   box-shadow: 0 8px 24px rgba(192,57,43,.28);
 }
 .pas-kpi-hero .pas-num { color: #fff; }
+.pas-kpi-label { font-size: 13px; font-weight: 600; color: var(--pas-muted); }
 .pas-kpi-hero .pas-kpi-label { color: #FFE2D2; }
 .pas-kpi-hero .pas-kpi-note { color: #FFE2D2; }
 .pas-kpi-hero .pas-delta { background: rgba(255,255,255,.22); color: #FFE2D2; }
-.pas-delta { font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+.pas-delta { font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
 .pas-delta.up { background: #FDEEE4; color: #C0392B; }
 .pas-delta.flat { background: #F2EFEC; color: #8A7C73; }
 .pas-delta.ok { background: #FFF2DC; color: #B07514; }
@@ -2788,8 +2789,8 @@ table.pas-tbl tbody tr:hover { background: #FDF6F2; }
     border: none !important;
     border-radius: 0 !important;
     position: relative;
-    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent 100%);
   }
   .pas-bento-chip-scroll::-webkit-scrollbar { display: none; }
   .pas-bento-chip-scroll > * { scroll-snap-align: start; flex-shrink: 0; }
@@ -2800,8 +2801,8 @@ table.pas-tbl tbody tr:hover { background: #FDF6F2; }
     color: var(--pas-muted) !important;
     font-weight: 600;
     border-radius: 8px !important;
-    padding: 9px 15px !important;
-    font-size: 12.5px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
     transition: all .18s ease;
     white-space: nowrap;
     box-shadow: 0 2px 6px rgba(0,0,0,.04) !important;
