@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IMAGE_ACCEPT, optimizeImageUrl, uploadToCloudinary } from "@/lib/cloudinary";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_LIST, getProgress } from "@/lib/types";
@@ -556,9 +557,12 @@ export default function PesananDashboard({
               <em className="pas-badge-y ml-auto">{orders.length}</em>
             )}
           </a>
-          <a className="pas-navlink" href="/pesanan/maklon">
+          {/* Maklon halaman terpisah (bukan tab di sini), jadi dipakai Link +
+              prefetch: payload rutenya sudah diambil lebih dulu sehingga klik
+              tidak menunggu server dan kerangka halamannya tampil seketika. */}
+          <Link className="pas-navlink" href="/pesanan/maklon" prefetch>
             <span className="pas-ic"><NavIcon name="maklon" /></span> Maklon
-          </a>
+          </Link>
           {(["jadwal", "kirim"] as ViewKey[]).map((key) => (
             <a
               key={key}
@@ -704,9 +708,9 @@ export default function PesananDashboard({
             >
               <span className="pas-ic"><NavIcon name="pesanan" /></span> {VIEW_META.pesanan.title}
             </a>
-            <a className="pas-navlink" href="/pesanan/maklon">
+            <Link className="pas-navlink" href="/pesanan/maklon" prefetch>
               <span className="pas-ic"><NavIcon name="maklon" /></span> Maklon
-            </a>
+            </Link>
             {(["jadwal", "kirim"] as ViewKey[]).map((key) => (
               <a
                 key={key}

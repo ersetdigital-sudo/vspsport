@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { IMAGE_ACCEPT, optimizeImageUrl, uploadToCloudinary } from "@/lib/cloudinary";
 import { MAKLON_STAGES, maklonProgress } from "@/lib/maklon-status";
 import {
@@ -270,38 +271,42 @@ export default function MaklonDashboard({
             <span className="pas-brand-sub">Admin Panel</span>
           </span>
         </a>
+        {/* Menu ini pindah HALAMAN (bukan ganti tab), jadi datanya dibaca di
+            server. Link + prefetch memakai payload yang sudah diambil dari awal:
+            begitu diklik, kerangka halamannya (loading.tsx) tampil seketika —
+            tidak ada jeda layar kosong menunggu server. */}
         <p className="pas-navsec">Operasional</p>
         <nav className="flex flex-col gap-1">
-          <a className="pas-navlink" href="/pesanan/orders">
+          <Link className="pas-navlink" href="/pesanan/orders" prefetch>
             <span className="pas-ic"><NavIcon name="pesanan" /></span> Pesanan
-          </a>
-          <a className="pas-navlink on" href="/pesanan/maklon">
+          </Link>
+          <Link className="pas-navlink on" href="/pesanan/maklon" prefetch>
             <span className="pas-ic"><NavIcon name="maklon" /></span> Maklon
             {orders.length > 0 && (
               <em className="pas-badge-y ml-auto">{orders.length}</em>
             )}
-          </a>
-          <a className="pas-navlink" href="/pesanan/orders#jadwal">
+          </Link>
+          <Link className="pas-navlink" href="/pesanan/orders#jadwal" prefetch>
             <span className="pas-ic"><NavIcon name="jadwal" /></span> Jadwal Produksi
-          </a>
-          <a className="pas-navlink" href="/pesanan/orders#kirim">
+          </Link>
+          <Link className="pas-navlink" href="/pesanan/orders#kirim" prefetch>
             <span className="pas-ic"><NavIcon name="kirim" /></span> Pengiriman
-          </a>
+          </Link>
         </nav>
         <p className="pas-navsec">Data</p>
         <nav className="flex flex-col gap-1">
-          <a className="pas-navlink" href="/pesanan/orders#customer">
+          <Link className="pas-navlink" href="/pesanan/orders#customer" prefetch>
             <span className="pas-ic"><NavIcon name="customer" /></span> Customer
-          </a>
-          <a className="pas-navlink" href="/pesanan/orders#laporan">
+          </Link>
+          <Link className="pas-navlink" href="/pesanan/orders#laporan" prefetch>
             <span className="pas-ic"><NavIcon name="laporan" /></span> Laporan
-          </a>
-          <a className="pas-navlink" href="/pesanan/orders#notif">
+          </Link>
+          <Link className="pas-navlink" href="/pesanan/orders#notif" prefetch>
             <span className="pas-ic"><NavIcon name="notif" /></span> Notifikasi
-          </a>
-          <a className="pas-navlink" href="/pesanan/orders#setting">
+          </Link>
+          <Link className="pas-navlink" href="/pesanan/orders#setting" prefetch>
             <span className="pas-ic"><NavIcon name="setting" /></span> Pengaturan
-          </a>
+          </Link>
         </nav>
         <div className="pas-userbox mt-auto p-3 flex items-center gap-3">
           <span className="pas-avatar pas-avatar-invert">AD</span>
