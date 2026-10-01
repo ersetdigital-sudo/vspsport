@@ -4685,8 +4685,8 @@ function AddForm({
           created_at: form.created_at ? new Date(form.created_at).toISOString() : undefined,
         }),
       });
+      const data = await res.json().catch(() => ({} as any));
       if (!res.ok) {
-        const data = await res.json();
         setError(data.error || "Gagal menyimpan");
         return;
       }
@@ -4695,7 +4695,10 @@ function AddForm({
       if (usedProducts.length > 0) setProductOptions(rememberProducts(usedProducts));
       shouldSkipDraftSaveRef.current = true;
       localStorage.removeItem(DRAFT_KEY);
-      onSaved("Pesanan ditambahkan");
+      // Notifikasi WA tahap 1 ikut dikirim saat pesanan dibuat (lihat POST
+      // /api/pesanan/orders); hasilnya disebut di toast supaya admin tahu kalau
+      // pengirimannya gagal dan perlu pakai tombol "Kirim ulang WA".
+      onSaved(`Pesanan ditambahkan${waNote(data?.notification?.status)}`);
     } catch {
       setError("Gagal menyimpan");
     } finally {

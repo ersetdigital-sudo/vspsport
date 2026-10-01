@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
+import { triggerStageNotification } from "@/lib/fonnte";
 import { generateOrderNumber } from "@/lib/order-number";
 import { fetchDoneAt, mapOrderRow } from "@/lib/order-map";
 import { loadStepOrder } from "@/lib/step-order-server";
@@ -105,5 +106,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ order: mapOrderRow(data, null, stepOrder) }, { status: 201 });
+  // Notifikasi WA tahap pertama dikirim SEKARANG, saat pesanan dibuat. Sebelumnya
+  // order baru hanya dicatat dan customer tidak dapat kabar apa pun sampai admin
+  // memindahkan tahap — padahal pesanan baru (tahap 1) itu justru kabar pertama
+  // yang paling ditunggu. Pesan & anti-duplikatnya memakai jalur yang sama dengan
+  // endpoint status: claim_stage_notification (unique order_id+stage), dan
+  // kegagalan kirim TIDAK PERNAH menggagalkan pembuatan pesanan.
+  const notification = await triggerStageNotification(supabase, data.id, data, 1);
+
+  return NextResponse.json(
+    { order: mapOrderRow(data, null, stepOrder), notification },
+    { status: 201 }
+  );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
+import { triggerMaklonStageNotification } from "@/lib/fonnte";
 import { mapMaklonRow } from "@/lib/maklon-map";
 import { MAKLON_NUMBER_PREFIX, generateOrderNumber } from "@/lib/order-number";
 
@@ -94,5 +95,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ order: mapMaklonRow(data) }, { status: 201 });
+  // Sama seperti tambah pesanan jersey: notifikasi WA tahap 1 (Layout) dikirim
+  // saat maklon dicatat, bukan menunggu tahapnya dipindah admin. Butir
+  // anti-duplikat & kegagalan kirim ditangani di dalam trigger-nya.
+  const notification = await triggerMaklonStageNotification(supabase, data.id, data, 1);
+
+  return NextResponse.json(
+    { order: mapMaklonRow(data), notification },
+    { status: 201 }
+  );
 }

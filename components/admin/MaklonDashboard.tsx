@@ -799,7 +799,9 @@ function AddForm({
       if (usedProducts.length > 0) setProductOptions(rememberProducts(usedProducts));
       shouldSkipDraftSaveRef.current = true;
       localStorage.removeItem(DRAFT_KEY);
-      onSaved(`Maklon ${data.order?.id || ""} berhasil ditambahkan`);
+      // Notifikasi WA tahap 1 (Layout) ikut dikirim saat maklon dibuat; toast-nya
+      // menyebut hasil pengiriman supaya kegagalan tidak lewat begitu saja.
+      onSaved(`Maklon ${data.order?.id || ""} berhasil ditambahkan${waNote(data?.notification?.status)}`);
     } catch {
       setError("Gagal menyimpan maklon, coba lagi");
     } finally {
