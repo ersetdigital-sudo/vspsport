@@ -14,6 +14,7 @@
  * dipakai bersama oleh pesanan jersey dan maklon.
  */
 import { createServiceClient } from "@/lib/supabase/server";
+import { samePhoneNumber } from "@/lib/wa";
 import type { Order, OrderStatus, OrderStatusHistory } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -21,27 +22,49 @@ import type { Order, OrderStatus, OrderStatusHistory } from "@/lib/types";
 // ---------------------------------------------------------------------------
 
 /**
+ * Hasil verifikasi halaman tracking.
+ *
+ * Sengaja dibedakan "nomor pesanan tidak ada" dan "nomor HP tidak cocok":
+ * dulu keduanya sama-sama `null`, dan pemanggilnya membalas 404 dengan pesan
+ * "nomor pesanan tidak ditemukan" — jadi saat yang salah justru nomor HP-nya,
+ * pemakainya disuruh memeriksa nomor pesanan. Sekarang kode HTTP-nya beda
+ * (404 vs 403) supaya pesan di layar bisa menunjuk penyebab yang sebenarnya.
+ */
+export type TrackingLookup =
+  | { status: "ok"; order: Order; history: OrderStatusHistory[] }
+  | { status: "not_found" }
+  | { status: "phone_mismatch" };
+
+/**
  * Verify and fetch an order by order_number + customer_phone.
- * Returns null if not found or phone doesn't match.
+ *
+ * Nomor HP dicocokkan lewat `samePhoneNumber` (lib/wa.ts), bukan perbandingan
+ * digit mentah, supaya `0856…` tetap cocok dengan pesanan yang nomornya
+ * tersimpan sebagai `62856…` atau `+62 856…`.
+ *
+ * Kegagalan database DILEMPAR (bukan diubah jadi "tidak ditemukan") — pemanggil
+ * membalasnya sebagai 500, jadi gangguan server tidak menyamar sebagai pesanan
+ * yang salah ketik.
  */
 export async function getOrderByTracking(
   orderNumber: string,
   phone: string
-): Promise<{ order: Order; history: OrderStatusHistory[] } | null> {
+): Promise<TrackingLookup> {
   const supabase = createServiceClient();
-
-  const normalizedPhone = phone.replace(/\D/g, "");
+  const key = String(orderNumber ?? "").trim().toUpperCase();
 
   const { data: order, error } = await supabase
     .from("orders")
     .select("*")
-    .eq("order_number", orderNumber.toUpperCase())
+    .eq("order_number", key)
     .maybeSingle();
 
-  if (error || !order) return null;
+  if (error) throw new Error(`Gagal membaca pesanan: ${error.message}`);
+  if (!order) return { status: "not_found" };
 
-  const orderPhone = (order.customer_phone as string).replace(/\D/g, "");
-  if (orderPhone !== normalizedPhone) return null;
+  if (!samePhoneNumber(order.customer_phone, phone)) {
+    return { status: "phone_mismatch" };
+  }
 
   const { data: history } = await supabase
     .from("order_status_history")
@@ -51,6 +74,7 @@ export async function getOrderByTracking(
 
   const { wo_photos: _wo, ...safeOrder } = order as any;
   return {
+    status: "ok",
     order: safeOrder as Order,
     history: (history ?? []) as OrderStatusHistory[],
   };

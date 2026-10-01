@@ -25,6 +25,33 @@ export function normalizeWhatsAppNumber(raw: string): string {
   return digits;
 }
 
+/**
+ * Bentuk kanonik nomor HP Indonesia untuk PERBANDINGAN — bukan untuk link WA.
+ *
+ * `normalizeWhatsAppNumber` menghasilkan bentuk internasional (62…) karena itu
+ * yang dibutuhkan link wa.me. Untuk memverifikasi pemilik pesanan, `0856…`,
+ * `62856…`, dan `+62 856…` harus dianggap nomor yang SAMA, jadi kode negara 62
+ * dan nol di depan dibuang di sini dan sisanya tinggal digit.
+ *
+ * Dipakai lib/queries-orders.ts: data di kolom `customer_phone` masih campur
+ * formatnya (ada yang `" 0857…"`, ada yang `62857…`).
+ */
+export function canonicalPhone(raw: string | null | undefined): string {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("62")) return digits.slice(2).replace(/^0+/, "");
+  return digits.replace(/^0+/, "");
+}
+
+/** true bila dua nomor menunjuk nomor yang sama (0856… ≡ 62 856… ≡ 856…). */
+export function samePhoneNumber(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  const canonical = canonicalPhone(a);
+  return canonical !== "" && canonical === canonicalPhone(b);
+}
+
 /** Build a WhatsApp Click-to-Chat URL that works on both Android & iOS. */
 export function buildWhatsAppLink(phone: string, text: string): string {
   const normalized = normalizeWhatsAppNumber(phone);

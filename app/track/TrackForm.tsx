@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatWhatsAppDisplay, waMeUrl } from "@/lib/wa";
+import { trackErrorMessage } from "@/lib/utils";
 
 /**
  * Form pelacakan (client component).
@@ -52,17 +53,17 @@ export default function TrackForm({
         body: JSON.stringify({ orderNumber: id, phone }),
       });
 
+      // Pesan mengikuti status balasan: 404 = nomor pesanan salah, 403 = nomor
+      // HP-nya yang tidak cocok (lihat trackErrorMessage + app/api/track).
       if (!res.ok) {
-        showErr(
-          "Nomor pesanan tidak ditemukan. Cek lagi formatnya (contoh: VSP260907K4XQ) atau hubungi admin."
-        );
+        showErr(trackErrorMessage(res.status));
         setLoading(false);
         return;
       }
 
       const data = await res.json();
       if (!data.order) {
-        showErr("Nomor HP tidak cocok dengan pesanan ini. Gunakan nomor yang dipakai saat order.");
+        showErr(trackErrorMessage(404));
         setLoading(false);
         return;
       }

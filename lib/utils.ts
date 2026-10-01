@@ -18,3 +18,25 @@ export function pcsLabel(quantity: string | number | null | undefined): string {
   if (!raw || raw === "-") return "-";
   return /(^|\s)pcs$/i.test(raw) ? raw : `${raw} pcs`;
 }
+
+/**
+ * Kalimat error halaman tracking untuk tiap status balasan `/api/track`.
+ *
+ * Dulu `/track` menulis "Nomor pesanan tidak ditemukan" dan `/status` menulis
+ * "Nomor HP tidak cocok" untuk SEMUA respons gagal — termasuk saat yang salah
+ * justru satunya lagi, atau saat servernya yang error (500). Pemetaannya
+ * ditaruh di sini supaya kedua halaman menyebut hal yang sama untuk kode yang
+ * sama; 403 vs 404 sendiri dipisah di app/api/track/route.ts.
+ */
+export function trackErrorMessage(status: number): string {
+  switch (status) {
+    case 400:
+      return "Nomor pesanan dan nomor HP wajib diisi.";
+    case 403:
+      return "Nomor HP tidak cocok dengan pesanan ini. Gunakan nomor HP yang dipakai saat order.";
+    case 404:
+      return "Nomor pesanan tidak ditemukan. Cek lagi formatnya (contoh: VSP260907K4XQ) atau hubungi admin.";
+    default:
+      return "Server sedang bermasalah. Coba lagi sebentar lagi atau hubungi admin.";
+  }
+}

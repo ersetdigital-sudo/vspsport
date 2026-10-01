@@ -21,6 +21,7 @@ import { formatShortDateTimeID } from "@/lib/format-date";
 import { formatTargetDate, formatDeadlineNote } from "@/lib/deadline";
 import { optimizeImageUrl } from "@/lib/cloudinary";
 import { resolveStepOrder, type StepOrder } from "@/lib/step-order";
+import { trackErrorMessage } from "@/lib/utils";
 import type { StatusInitial } from "@/lib/status-server";
 
 const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
@@ -286,15 +287,17 @@ export default function StatusClient({
         body: JSON.stringify({ orderNumber: orderId, phone }),
       });
 
+      // Bukan selalu "nomor HP salah": 404 berarti nomor pesanannya tidak ada,
+      // 500 berarti servernya yang bermasalah. Lihat trackErrorMessage.
       if (!res.ok) {
-        setVerifyError("Nomor HP tidak cocok dengan pesanan ini.");
+        setVerifyError(trackErrorMessage(res.status));
         setVerifying(false);
         return;
       }
 
       const data = await res.json();
       if (!data.order) {
-        setVerifyError("Nomor HP tidak cocok dengan pesanan ini.");
+        setVerifyError(trackErrorMessage(404));
         setVerifying(false);
         return;
       }

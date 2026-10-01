@@ -12,7 +12,7 @@ halaman (server component), komponen dashboard, dan API routes.
 | `maklon-status.ts` | Hal yang sama untuk **6 tahap maklon**: `MAKLON_STAGES` (step + slug + label), `maklonStatusFromStep`, `maklonStepFromStatus`, `maklonProgress`, `isMaklonCompleted` |
 | `order-number.ts` | Generator nomor pesanan bersama jersey & maklon: `generateOrderNumber`, `jakartaDatePart`, `ORDER_NUMBER_REGEX`. Memakai CSPRNG, bukan `Math.random()` |
 | `format-date.ts` | **Satu-satunya** tempat format tanggal & jam, semuanya dipaksa zona `Asia/Jakarta`: `formatDateTimeID`, `formatShortDateTimeID`, `formatDateTimeWIB`, `formatNumericDateID`, `formatShortDateID`, `formatTimeID`, `dateKeyID` (kunci harian) dan `monthKeyID` (kunci bulanan untuk laporan) |
-| `queries-orders.ts` | Akses data order: `getOrderByTracking` (memverifikasi nomor HP sebelum mengembalikan data), `getAllOrders`, `getOrderById`, `stripWoPhoto` |
+| `queries-orders.ts` | Akses data order: `getOrderByTracking` (memverifikasi nomor HP sebelum mengembalikan data; hasilnya `{ status: "ok" \| "not_found" \| "phone_mismatch" }` supaya route bisa membalas 404 vs 403), `getAllOrders`, `getOrderById`, `stripWoPhoto` |
 | `product-options.ts` | Daftar pilihan produk form Pesanan & Maklon: `DEFAULT_PRODUCTS`, `mergeProductOptions(extra)`, `rememberProducts(names)`, plus `productFamily(name)` (Atasan / Setelan / null) yang dipakai laporan *Penjualan per Produk* dan bagian produk di beranda. Produk custom disimpan di `localStorage` (per perangkat), jadi form **wajib** memberi `extra` = nama produk order yang sedang dibuka |
 
 Menambah atau mengubah tahap produksi: mulai dari `types.ts` (jersey) atau
@@ -25,7 +25,7 @@ cadangan di dashboard semuanya menurun dari dua file itu — tidak perlu dicari 
 | --- | --- |
 | `fonnte.ts` | Integrasi Fonnte: template pesan (`buildWhatsAppMessage`, `buildMaklonWhatsAppMessage`), URL tracking publik, `sendFonnteMessage` (timeout 10 detik), `triggerStageNotification` & `triggerMaklonStageNotification`, ambil token dari `app_settings` |
 | `fonnte-crypto.ts` | Enkripsi/dekripsi token Fonnte (AES-256-GCM, key dari `SETTINGS_ENCRYPTION_KEY`). Token tidak pernah dikirim ke browser |
-| `wa.ts` | Normalisasi & validasi nomor WhatsApp + `buildWhatsAppLink` (satu tempat untuk aturan format internasional) |
+| `wa.ts` | Normalisasi & validasi nomor WhatsApp + `buildWhatsAppLink` (satu tempat untuk aturan format internasional). `canonicalPhone`/`samePhoneNumber` dipakai membandingkan nomor HP pelanggan (0856… ≡ 62856…) |
 | `verify-token.ts` | Token tracking bertanda tangan HMAC: `signToken`, `verifyToken`, `signTrackingToken` (berlaku 30 hari), `buildSetCookie` |
 | `rate-limit.ts` | Rate limiter in-memory sliding window (`checkRateLimit`) untuk endpoint update tahap. Per-instance server, bukan global |
 | `notif-note.ts` | `waNote(status)` — ubah status kirim WA jadi kalimat toast ("WA terkirim", "WA gagal dikirim", …). Client-safe; dipakai form Pesanan & Maklon |
@@ -55,4 +55,4 @@ Anti-duplikat notifikasi tidak dicek di kode, tapi di database: RPC
 
 | File | Isi |
 | --- | --- |
-| `utils.ts` | `cn()` — penggabung className (`clsx` + `tailwind-merge`) |
+| `utils.ts` | `cn()` — penggabung className (`clsx` + `tailwind-merge`); `pcsLabel()`; `trackErrorMessage()` — kalimat error halaman tracking per status HTTP `/api/track` |

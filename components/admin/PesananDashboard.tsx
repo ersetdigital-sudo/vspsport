@@ -3700,6 +3700,8 @@ function DetailSheet({
   const [saving, setSaving] = useState(false);
   const [resending, setResending] = useState(false);
   const [kirimError, setKirimError] = useState("");
+  // Umpan balik tombol "Salin No. HP" di blok Data Order.
+  const [copiedPhone, setCopiedPhone] = useState(false);
   const [editProductRows, setEditProductRows] = useState<{ product: string; custom: boolean; qty: string }[]>(() => {
     const initProducts = order?.products;
     if (initProducts && initProducts.length > 0) {
@@ -3749,6 +3751,24 @@ function DetailSheet({
     }
   }, [order]);
   const updateEditRow = (idx: number, patch: Partial<typeof editProductRows[0]>) => setEditProductRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  /**
+   * Salin nomor HP customer apa adanya (nilai yang tersimpan di database) supaya
+   * bisa langsung ditempel ke WhatsApp/ekspedisi. Kalau clipboard diblokir
+   * browser (halaman non-HTTPS atau izin ditolak), admin diberi tahu lewat toast
+   * daripada tombolnya diam saja.
+   */
+  async function copyCustomerPhone() {
+    const phone = cleanName(order?.customer_phone || "");
+    if (!phone) return;
+    try {
+      await navigator.clipboard.writeText(phone);
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 1600);
+    } catch {
+      onToast("Gagal menyalin nomor HP");
+    }
+  }
 
   const handleWoUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) { setKirimError("File harus gambar"); return; }
@@ -3991,6 +4011,28 @@ function DetailSheet({
               <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Data Order</span>
             </div>
             <div className="grid grid-cols-2">
+              {/* Customer + nomor HP: satu-satunya tempat nomor HP muncul di detail
+                  pesanan, dan tombol salinnya supaya tidak perlu ketik ulang manual. */}
+              <div className="col-span-2 px-4 py-3 border-b border-[var(--pas-line)]">
+                <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Customer</span>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold truncate">{cleanName(order.customer_name) || "-"}</p>
+                    <p className="text-[13px] text-[var(--pas-muted)] pas-num mt-0.5">{cleanName(order.customer_phone) || "-"}</p>
+                  </div>
+                  {cleanName(order.customer_phone) && (
+                    <button
+                      type="button"
+                      onClick={copyCustomerPhone}
+                      className="pas-btn-ghost px-3 py-2 text-[12px] shrink-0"
+                      title="Salin nomor HP customer"
+                      aria-label="Salin nomor HP customer"
+                    >
+                      {copiedPhone ? "Tersalin ✓" : "Salin No. HP"}
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="px-4 py-3 border-b border-r border-[var(--pas-line)]">
                 <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Tanggal Order</span>
                 <p className="mt-1 text-[14px] font-semibold">{formatDatePretty(order.created_at)}</p>
