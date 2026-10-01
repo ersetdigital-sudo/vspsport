@@ -14,7 +14,13 @@ export const metadata = {
  * pesanan sudah ada di HTML pertama. Dulu halaman ini cuma merender komponen
  * client, jadi tabelnya kosong dulu sampai JS selesai memanggil
  * /api/pesanan/orders.
+ *
+ * `force-dynamic` ditulis eksplisit: halaman ini membaca cookie login, jadi
+ * memang tidak boleh di-prerender. Tanpa ini, build mencoba menyiapkannya jadi
+ * halaman statis lebih dulu, gagal karena `cookies()`, lalu jatuh ke dynamic —
+ * percuma dan hanya menambah log error saat build.
  */
+export const dynamic = "force-dynamic";
 export default async function PesananPage() {
   const initial = await loadPesananDashboardInitial();
   return <PesananDashboard initial={initial} />;

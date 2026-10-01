@@ -41,33 +41,48 @@ export async function loadStatusInitial(
   try {
     const supabase = createServiceClient();
 
-    const { data: order, error: orderErr } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("order_number", session.orderId)
-      .single();
-
-    if (orderErr || !order) return null;
-
-    const [historyRes, stepsRes] = await Promise.all([
+    // SATU round trip untuk data pesanannya: riwayat ikut dikirim PostgREST
+    // lewat relasi FK `order_status_history.order_id → orders.id` (migrasi
+    // 0001, jadi embed-nya sah), dan daftar tahap diambil bersamaan karena tidak
+    // bergantung pada order-nya.
+    //
+    // Dulu urutannya tiga query: baca order → baru baca riwayat + tahap. Tiap
+    // round trip ke database (dan tiap baris kode yang menunggunya) terasa
+    // langsung sebagai halaman status yang lambat.
+    const [orderRes, stepsRes] = await Promise.all([
       supabase
-        .from("order_status_history")
-        .select("*")
-        .eq("order_id", order.id)
-        .order("created_at", { ascending: true }),
+        .from("orders")
+        .select("*, order_status_history(*)")
+        .eq("order_number", session.orderId)
+        .maybeSingle(),
       supabase
         .from("production_steps")
         .select("*")
         .order("position", { ascending: true }),
     ]);
 
+    if (orderRes.error || !orderRes.data) return null;
+
     // `wo_photos` sengaja dibuang, persis seperti /api/track/session — foto WO
     // adalah dokumen internal, bukan untuk halaman customer.
-    const { wo_photos: _wo, ...safeOrder } = order as any;
+    const {
+      order_status_history: historyRows,
+      wo_photos: _wo,
+      ...safeOrder
+    } = orderRes.data as any;
+
+    // Urutan riwayat dirapikan di sini, bukan lewat `.order(...)` pada resource
+    // bersarang, supaya tidak bergantung pada detail sintaks PostgREST. Jumlah
+    // barisnya kecil (maksimal sebanyak tahap produksi).
+    const history = ((historyRows ?? []) as any[])
+      .slice()
+      .sort((a, b) =>
+        String(a.created_at).localeCompare(String(b.created_at))
+      );
 
     return {
       order: safeOrder,
-      history: historyRes.data || [],
+      history,
       steps: (stepsRes.data ?? []) as StatusStep[],
     };
   } catch (e) {

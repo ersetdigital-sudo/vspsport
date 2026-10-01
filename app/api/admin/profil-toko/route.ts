@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/admin-auth";
+import { invalidateIdentityCache } from "@/lib/queries";
 
 // Tanpa guard, siapa pun bisa mengubah nomor WhatsApp toko lewat POST —
 // yaitu mengalihkan semua pesanan customer ke nomor lain.
@@ -53,6 +54,10 @@ export async function POST(req: Request) {
   if (opErr) {
     return NextResponse.json({ error: opErr.message }, { status: 500 });
   }
+
+  // Cache identitas toko (lib/queries.ts) dibuang supaya halaman publik seperti
+  // /track langsung memakai nama, nomor WhatsApp, dan jam operasional yang baru.
+  invalidateIdentityCache();
 
   return NextResponse.json({ success: true });
 }

@@ -53,30 +53,34 @@ export async function getOrderByTracking(
   const supabase = createServiceClient();
   const key = String(orderNumber ?? "").trim().toUpperCase();
 
-  const { data: order, error } = await supabase
+  // Riwayat diambil SEKALIAN lewat relasi (embed PostgREST) — lihat penjelasan
+  // di lib/status-server.ts. Jadi memverifikasi + mengambil data cukup satu
+  // round trip ke database, bukan dua yang berurutan.
+  const { data: row, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, order_status_history(*)")
     .eq("order_number", key)
     .maybeSingle();
 
   if (error) throw new Error(`Gagal membaca pesanan: ${error.message}`);
-  if (!order) return { status: "not_found" };
+  if (!row) return { status: "not_found" };
 
-  if (!samePhoneNumber(order.customer_phone, phone)) {
+  if (!samePhoneNumber(row.customer_phone, phone)) {
     return { status: "phone_mismatch" };
   }
 
-  const { data: history } = await supabase
-    .from("order_status_history")
-    .select("*")
-    .eq("order_id", order.id)
-    .order("created_at", { ascending: true });
+  const { order_status_history: historyRows, wo_photos: _wo, ...safeOrder } = row as any;
 
-  const { wo_photos: _wo, ...safeOrder } = order as any;
+  const history = ((historyRows ?? []) as OrderStatusHistory[])
+    .slice()
+    .sort((a, b) =>
+      String(a.created_at).localeCompare(String(b.created_at))
+    );
+
   return {
     status: "ok",
     order: safeOrder as Order,
-    history: (history ?? []) as OrderStatusHistory[],
+    history,
   };
 }
 

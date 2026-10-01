@@ -1,25 +1,24 @@
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 /**
- * Cek akses admin untuk route handler.
+ * Cek akses admin untuk route handler & pembacaan data di server.
  *
- * Menerima dua sumber auth (keduanya dicek SERVER-SIDE):
- * - cookie `pesanan_auth=true` — dashboard Pesanan (`/pesanan/orders`,
- *   login pakai shared password via /api/pesanan/auth).
- * - user Supabase authenticated — dashboard admin (`/admin`).
+ * SATU sumber auth: cookie `pesanan_auth=true`, yang di-set oleh
+ * `/api/pesanan/auth` setelah password bersama diverifikasi. Cookie ini hanya
+ * bisa di-set server, dan nilainya harus persis "true" — nilai lain (mis.
+ * "asdf") ditolak, sama seperti cek di app/pesanan/layout.tsx.
+ *
+ * DULU fungsi ini punya jalur kedua: "user Supabase authenticated" (warisan
+ * repo referensi, untuk halaman /admin yang sudah tidak ada). Jalur itu dihapus
+ * bersama penyegaran sesi di middleware.ts — tidak ada satu pun
+ * `signInWithPassword` di aplikasi ini, jadi jalur tersebut tidak pernah
+ * terpakai dan cuma membuat kode ini seolah punya dua cara autentikasi.
  */
-export async function hasAdminAccess(
-  supabase: SupabaseClient
-): Promise<boolean> {
+export async function hasAdminAccess(): Promise<boolean> {
   const cookieStore = await cookies();
-  if (cookieStore.get("pesanan_auth")?.value === "true") return true;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return Boolean(user);
+  return cookieStore.get("pesanan_auth")?.value === "true";
 }
 
 /**
@@ -38,7 +37,6 @@ export async function hasAdminAccess(
  *   if (!db) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  */
 export async function getAdminDb(): Promise<SupabaseClient | null> {
-  const authClient = await createClient();
-  if (!(await hasAdminAccess(authClient))) return null;
+  if (!(await hasAdminAccess())) return null;
   return createServiceClient();
 }

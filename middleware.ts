@@ -1,4 +1,3 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
@@ -7,79 +6,38 @@ import { NextResponse, type NextRequest } from "next/server";
  * Kenapa: middleware di-deploy sebagai berkas tersendiri, dan pada build
  * production berkas itu bisa di-emit mentah. Kalau dia mengimpor `@/lib/...`
  * (alias tsconfig), Node tidak bisa me-resolve-nya dan semua request gagal
- * dengan MIDDLEWARE_INVOCATION_FAILED. Karena itu logika session Supabase
- * ada langsung di sini, dan hanya mengimpor paket npm biasa (@supabase/ssr)
- * serta next/server.
+ * dengan MIDDLEWARE_INVOCATION_FAILED. Karena itu hanya paket npm biasa
+ * (`next/server`) yang diimpor di sini.
  *
- * Yang dilakukan:
- *  1. Refresh session Supabase lewat cookie (supaya Server Component selalu
- *     membaca session terbaru tanpa hard reload).
- *  2. Menitipkan pathname ke header `x-pathname` supaya layout server
- *     (mis. app/pesanan/layout.tsx) tahu halaman apa yang sedang dibuka.
+ * Isinya sekarang cuma SATU hal: menitipkan pathname ke header `x-pathname`,
+ * yang dipakai app/pesanan/layout.tsx untuk tahu halaman mana yang sedang dibuka
+ * (`/pesanan/login` tidak boleh kena cek cookie).
  *
- * CATATAN: middleware ini dulu juga menjaga rute `/admin/*` (login/signup),
- * warisan dari repo referensi. App ini tidak punya halaman `/admin` sama
- * sekali, jadi blok itu membingungkan dan sudah dihapus. Gerbang dashboard
- * yang sebenarnya ada di app/pesanan/layout.tsx (cookie `pesanan_auth`).
+ * DULU berkas ini juga menyegarkan sesi Supabase lewat `supabase.auth.getUser()`
+ * untuk SETIAP request. Dua alasan kenapa itu dihapus:
+ *   1. Aplikasi ini tidak punya Supabase Auth sama sekali — login dashboard
+ *      memakai shared password + cookie `pesanan_auth` (app/api/pesanan/auth),
+ *      dan tidak ada halaman /admin. Jadi panggilan itu hasilnya tidak pernah
+ *      dipakai, tapi biayanya nyata: satu round trip HTTP ke Supabase sebelum
+ *      request dilanjutkan. Itu yang bikin halaman publik seperti /status dan
+ *      /track terasa lambat.
+ *   2. `matcher` di bawah juga dipersempit ke rute dashboard, jadi halaman
+ *      publik & endpoint API tidak lagi melewati middleware sama sekali.
+ *
+ * Penjagaan dashboard yang sebenarnya ada di app/pesanan/layout.tsx (cookie
+ * `pesanan_auth`) dan lib/admin-auth.ts untuk route handler.
  */
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
-  // Simpan di variabel lokal supaya tipenya ter-narrow dengan benar.
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  // Supabase belum dikonfigurasi (mis. preview tanpa env var) — lewati
-  // penanganan session supaya halaman tetap render dari data fallback.
-  if (!supabaseUrl || !supabaseAnonKey) {
-    const pathname = request.nextUrl.pathname;
-    response.headers.set("x-pathname", pathname);
-    return response;
-  }
-
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  // getUser() me-refresh token server-side. Jangan diganti getSession() —
-  // itu cuma membaca JWT tanpa refresh. Hasilnya tidak dipakai di sini:
-  // penjagaan rute dashboard ada di app/pesanan/layout.tsx.
-  await supabase.auth.getUser();
-
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
   response.headers.set("x-pathname", request.nextUrl.pathname);
-
   return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Semua path kecuali:
-     * - _next/static, _next/image (aset internal)
-     * - favicon, ikon app, & aset publik lain
-     *
-     * Pengecualian ini bukan cuma soal header: tiap request yang lolos matcher
-     * memanggil Supabase `getUser()`. Tanpa daftar ini, tiap kali browser minta
-     * favicon/logo kita bayar satu round-trip ke Supabase tanpa guna.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|favicon.png|icon.png|apple-icon.png|logo.svg|logo-vsp.png|logo-vsp-mark.png|opengraph-image).*)",
-  ],
+  /*
+   * HANYA rute dashboard. Halaman publik (/status, /track, /status/maklon) dan
+   * seluruh /api/* tidak perlu header ini, jadi jangan dibebani middleware.
+   */
+  matcher: ["/pesanan/:path*"],
 };

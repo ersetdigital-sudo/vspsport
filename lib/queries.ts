@@ -20,8 +20,39 @@ import {
 import * as fallback from "@/lib/data";
 import type { Brand, DbBrand } from "@/lib/types";
 
-export async function getBrand(): Promise<Brand> {
-  if (!supabaseConfigured()) return fallback.brand;
+/**
+ * Cache pendek di memori proses.
+ *
+ * Kenapa perlu: `getBrand()` dipanggil metadata root layout pada SETIAP request
+ * (app/layout.tsx → generateMetadata), dan `getOperationalHours()` dipanggil
+ * halaman /track. Masing-masing satu round trip ke Supabase yang berada di
+ * jalur kritis — HTML pertama tidak bisa dikirim sebelum keduanya selesai —
+ * padahal isinya hanya berubah saat admin mengedit menu Pengaturan.
+ *
+ * TTL 60 detik: perubahan dari menu Pengaturan tetap terlihat cepat, tapi
+ * request berikutnya tidak lagi membayar round trip yang sama. Cache ini
+ * per-instance (serverless tidak berbagi memori antar instance) — cukup, karena
+ * tujuannya menghindari pengulangan, bukan konsistensi global.
+ */
+const IDENTITY_CACHE_TTL_MS = 60_000;
+
+let brandCache: { value: Brand; at: number } | null = null;
+let hoursCache: { value: string; at: number } | null = null;
+
+/**
+ * Buang cache identitas toko setelah admin menyimpannya dari menu Pengaturan,
+ * supaya nama/nomor WhatsApp/jam operasional yang baru langsung dipakai halaman
+ * publik — tidak menunggu TTL 60 detik habis. Dipanggil endpoint
+ * `/api/admin/profil-toko`.
+ */
+export function invalidateIdentityCache(): void {
+  brandCache = null;
+  hoursCache = null;
+}
+
+/** Baca baris `brand` dari database; `null` = gagal/tidak ada. */
+async function loadBrandFromDb(): Promise<Brand | null> {
+  if (!supabaseConfigured()) return null;
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -30,7 +61,7 @@ export async function getBrand(): Promise<Brand> {
     .eq("id", 1)
     .maybeSingle();
 
-  if (error || !data) return fallback.brand;
+  if (error || !data) return null;
 
   const row = data as DbBrand;
   return {
@@ -41,6 +72,23 @@ export async function getBrand(): Promise<Brand> {
     whatsappNumber: row.whatsapp_number,
     logoPath: row.logo_path,
   };
+}
+
+export async function getBrand(): Promise<Brand> {
+  if (brandCache && Date.now() - brandCache.at < IDENTITY_CACHE_TTL_MS) {
+    return brandCache.value;
+  }
+
+  const fromDb = await loadBrandFromDb();
+  if (fromDb) {
+    brandCache = { value: fromDb, at: Date.now() };
+    return fromDb;
+  }
+
+  // Hasil cadangan TIDAK di-cache: kalau database sedang bermasalah, halaman
+  // berikutnya harus mencoba lagi, bukan menyajikan nilai cadangan selama 60
+  // detik penuh setelah database pulih.
+  return fallback.brand;
 }
 
 /**
@@ -57,6 +105,10 @@ export async function getBrand(): Promise<Brand> {
  * kunci, dan hasilnya memang untuk ditampilkan.
  */
 export async function getOperationalHours(): Promise<string> {
+  if (hoursCache && Date.now() - hoursCache.at < IDENTITY_CACHE_TTL_MS) {
+    return hoursCache.value;
+  }
+
   if (!serviceRoleConfigured()) return fallback.JAM_OPERASIONAL;
 
   const supabase = createServiceClient();
@@ -66,6 +118,9 @@ export async function getOperationalHours(): Promise<string> {
     .eq("key", "jam_operasional")
     .maybeSingle();
 
+  // Sama seperti getBrand(): yang di-cache hanya bacaan database yang berhasil.
   if (error || !data?.value?.trim()) return fallback.JAM_OPERASIONAL;
+
+  hoursCache = { value: data.value, at: Date.now() };
   return data.value;
 }

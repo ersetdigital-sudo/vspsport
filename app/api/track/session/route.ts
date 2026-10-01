@@ -42,24 +42,26 @@ export async function GET(request: NextRequest) {
     // jadi query-nya boleh memakai service role.
     const supabase = createServiceClient();
 
-    const { data: order, error: orderErr } = await supabase
+    // Riwayat ikut diambil lewat embed PostgREST (satu round trip), sama seperti
+    // pembacaan awal di lib/status-server.ts.
+    const { data: row, error: orderErr } = await supabase
       .from("orders")
-      .select("*")
+      .select("*, order_status_history(*)")
       .eq("order_number", session.orderId)
-      .single();
+      .maybeSingle();
 
-    if (orderErr || !order) {
+    if (orderErr || !row) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const { data: history } = await supabase
-      .from("order_status_history")
-      .select("*")
-      .eq("order_id", order.id)
-      .order("created_at", { ascending: true });
+    const { order_status_history: historyRows, wo_photos: _wo, ...safeOrder } = row as any;
+    const history = ((historyRows ?? []) as any[])
+      .slice()
+      .sort((a, b) =>
+        String(a.created_at).localeCompare(String(b.created_at))
+      );
 
-    const { wo_photos: _wo, ...safeOrder } = order as any;
-    return NextResponse.json({ order: safeOrder, history: history || [] });
+    return NextResponse.json({ order: safeOrder, history });
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

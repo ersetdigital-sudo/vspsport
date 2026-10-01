@@ -38,7 +38,7 @@ Anti-duplikat notifikasi tidak dicek di kode, tapi di database: RPC
 
 | File | Isi |
 | --- | --- |
-| `queries.ts` | Akses data publik server-side: `getBrand()` (identitas toko untuk beranda & halaman tracking) dan `getOperationalHours()` (jam operasional dari `app_settings`), keduanya jatuh ke data statis kalau database tidak bisa dihubungi |
+| `queries.ts` | Akses data publik server-side: `getBrand()` (identitas toko untuk beranda & halaman tracking) dan `getOperationalHours()` (jam operasional dari `app_settings`), keduanya jatuh ke data statis kalau database tidak bisa dihubungi. Hasil bacaan yang berhasil di-cache 60 detik di memori proses (dipanggil tiap request lewat metadata root layout); `invalidateIdentityCache()` dipanggil `/api/admin/profil-toko` supaya perubahan Pengaturan langsung terpakai |
 | `data.ts` | Data fallback statis untuk identitas toko: `brand`, `WA_NUMBER`, `JAM_OPERASIONAL` |
 | `app-url.ts` | `getAppUrl()` — domain aplikasi untuk link tracking & notifikasi. Membaca `APP_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` → `localhost`, jadi tidak ada domain yang di-hardcode |
 
@@ -48,7 +48,7 @@ Anti-duplikat notifikasi tidak dicek di kode, tapi di database: RPC
 | --- | --- |
 | `supabase/client.ts` | Supabase client untuk browser (anon key) |
 | `supabase/server.ts` | `createClient()` (cookie session, anon) dan `createServiceClient()` (service role, menembus RLS — hanya untuk server) |
-| `admin-auth.ts` | `getAdminDb()` — guard route handler dashboard: cek cookie `pesanan_auth` / user Supabase, lalu kembalikan service-role client (atau `null` → balas 401) |
+| `admin-auth.ts` | `getAdminDb()` & `hasAdminAccess()` — guard route handler dashboard: cek cookie `pesanan_auth`, lalu kembalikan service-role client (atau `null` → balas 401). Tidak memakai Supabase Auth: login dashboard pakai shared password |
 | `cloudinary.ts` | Helper Cloudinary: `uploadToCloudinary` (unsigned upload) dan `cloudinaryUrl` (transformasi `f_auto,q_auto`) |
 
 ## Lain-lain

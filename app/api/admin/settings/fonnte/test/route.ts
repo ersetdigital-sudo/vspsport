@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { hasAdminAccess } from "@/lib/admin-auth";
 import {
   getFonnteToken,
@@ -16,9 +15,10 @@ const TEST_MESSAGE =
  * Memvalidasi token tersimpan + nomor HP admin tanpa membocorkan token.
  */
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  if (!(await hasAdminAccess(supabase))) {
+  // Cek cookie admin dulu — sebelum menyentuh apa pun. (Dulu di sini dibuat
+  // client Supabase anon hanya untuk memeriksa sesi Supabase Auth yang tidak
+  // pernah dipakai aplikasi ini; lihat lib/admin-auth.ts.)
+  if (!(await hasAdminAccess())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
