@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { createClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyToken } from "@/lib/verify-token";
 import { MAKLON_STAGES, MAKLON_STEP_PROGRESS } from "@/lib/maklon-status";
 import { formatDateTimeWIB, formatShortDateID } from "@/lib/format-date";
-import { WA_NUMBER } from "@/lib/data";
-import { waMeUrl } from "@/lib/wa";
 
 /**
  * Halaman tracking publik untuk pesanan MAKLON.
  *
  * Dipakai oleh link di notifikasi WhatsApp (`buildMaklonTrackingUrl`).
  * Aksesnya pakai token HMAC 30 hari yang sama dengan link jersey
- * (lib/verify-token) — kalau token tidak ada/kedaluwarsa, customer
- * diarahkan hubungi CS, bukan jatuh ke halaman "pesanan tidak ditemukan".
+ * (lib/verify-token) — kalau token tidak ada/kedaluwarsa, customer diberi tahu
+ * link-nya kedaluwarsa, bukan jatuh ke halaman "pesanan tidak ditemukan".
+ *
+ * Sama seperti /status, di sini sengaja TIDAK ada tombol "Hubungi CS"/WhatsApp:
+ * halamannya murni untuk melihat progres, dan kanal komunikasi sudah lewat
+ * pesan WhatsApp otomatis tiap tahap.
  *
  * Halaman ini SENGAJA terpisah dari /status (yang khusus pesanan jersey,
  * 11 tahap, dan punya alur verifikasi nomor HP sendiri) supaya alur jersey
@@ -28,8 +29,6 @@ export const metadata: Metadata = {
 
 /** Nama tahap cadangan bila tabel `maklon_steps` belum berisi apa pun. */
 const DEFAULT_STEP_NAMES = MAKLON_STAGES.map((stage) => stage.label);
-
-const BRAND_FALLBACK = { name: "VSP Sport", whatsapp_number: WA_NUMBER };
 
 type MaklonProduct = { name?: string; sizes?: { size?: string; qty?: number }[] };
 
@@ -125,12 +124,13 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
-function Shell({ children, csHref }: { children: React.ReactNode; csHref: string }) {
+function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="trk-bg min-h-screen">
+      <div className="trk-aurora" aria-hidden="true" />
       <div className="trk-grid min-h-screen">
         <div className="trk-glow">
-          <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[rgba(10,10,11,.72)] backdrop-blur-xl">
+          <header className="dpo-topbar sticky top-0 z-30 border-b border-white/[.07] bg-[rgba(10,10,11,.72)] backdrop-blur-xl">
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5">
               <div className="flex items-center gap-3">
                 <a href="/" className="shrink-0" aria-label="Kembali ke beranda">
@@ -152,14 +152,6 @@ function Shell({ children, csHref }: { children: React.ReactNode; csHref: string
                   </p>
                 </div>
               </div>
-              <a
-                href={csHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/[.12] bg-white/5 px-4 py-2 text-[13px] font-medium text-[#A29086] hover:bg-white/10 hover:text-white transition"
-              >
-                Hubungi CS
-              </a>
             </div>
           </header>
           <main className="mx-auto w-full max-w-3xl px-4 pb-20 sm:px-6">{children}</main>
@@ -167,27 +159,6 @@ function Shell({ children, csHref }: { children: React.ReactNode; csHref: string
       </div>
     </div>
   );
-}
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-/** Nama toko + nomor WA CS dari pengaturan brand (fallback ke default). */
-async function loadBrand(): Promise<{ name: string; whatsapp_number: string }> {
-  const { data } = await getSupabase()
-    .from("brand")
-    .select("name, whatsapp_number")
-    .eq("id", 1)
-    .maybeSingle();
-
-  return {
-    name: data?.name || BRAND_FALLBACK.name,
-    whatsapp_number: data?.whatsapp_number || BRAND_FALLBACK.whatsapp_number,
-  };
 }
 
 async function loadMaklonOrder(orderNumber: string) {
@@ -227,37 +198,19 @@ export default async function MaklonStatusPage({
   const session = token ? verifyToken(token) : null;
   const authorized = !!session && !!orderNumber && session.orderId === orderNumber;
 
-  const brand = await loadBrand();
-  // Nomor dari pengaturan brand formatnya lokal (08...); konversi ke format
-  // internasional ada di lib/wa.ts, bukan disalin di sini.
-  const csHref = waMeUrl(
-    brand.whatsapp_number || BRAND_FALLBACK.whatsapp_number,
-    `Halo ${brand.name}, saya mau tanya progres pesanan maklon saya${
-      orderNumber ? ` (${orderNumber})` : ""
-    }.`
-  );
-
   const result = authorized ? await loadMaklonOrder(orderNumber) : null;
 
   if (!authorized) {
     return (
-      <Shell csHref={csHref}>
+      <Shell>
         <div className="pt-7 sm:pt-12">
           <InfoCard title="Status Pesanan Maklon">
             <h1 className="trk-display text-[22px] leading-tight">Link tidak valid atau kedaluwarsa</h1>
             <p className="mt-3 text-[14px] leading-relaxed text-[#A29086]">
               Link ini cuma bisa dibuka dari pesan WhatsApp resmi kami dan berlaku 30 hari.
-              Kalau link-nya sudah lama, minta link baru ke CS ya — atau langsung tanya
-              progres pesanan kamu.
+              Kalau link-nya sudah lama, minta link baru dari admin kami ya — link otomatis
+              dikirim lagi lewat WhatsApp tiap kali tahap pesanan kamu bertambah.
             </p>
-            <a
-              href={csHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="trk-btn-accent mt-6 inline-flex items-center gap-2 px-6 py-3.5 text-[14px]"
-            >
-              Chat CS
-            </a>
           </InfoCard>
         </div>
       </Shell>
@@ -266,22 +219,14 @@ export default async function MaklonStatusPage({
 
   if (!result) {
     return (
-      <Shell csHref={csHref}>
+      <Shell>
         <div className="pt-7 sm:pt-12">
           <InfoCard title="Status Pesanan Maklon">
             <h1 className="trk-display text-[22px] leading-tight">Pesanan tidak ditemukan</h1>
             <p className="mt-3 text-[14px] leading-relaxed text-[#A29086]">
               Pesanan <span className="dpo-mono text-[#EFE3DC]">{orderNumber}</span> tidak ada di
-              sistem kami. Pastikan nomornya benar atau hubungi CS untuk dibantu cek ulang.
+              sistem kami. Pastikan nomor pesanannya sudah benar ya.
             </p>
-            <a
-              href={csHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="trk-btn-accent mt-6 inline-flex items-center gap-2 px-6 py-3.5 text-[14px]"
-            >
-              Chat CS
-            </a>
           </InfoCard>
         </div>
       </Shell>
@@ -300,7 +245,7 @@ export default async function MaklonStatusPage({
   const designPhotos = photoUrls(order.design_photos);
 
   return (
-    <Shell csHref={csHref}>
+    <Shell>
       <section className="pt-7 sm:pt-12">
         <p className="dpo-kicker">Status Pesanan Maklon</p>
         <h1 className="dpo-h1 mt-2.5">
@@ -349,7 +294,11 @@ export default async function MaklonStatusPage({
             const pos = i + 1;
             const state = pos < step ? "trk-done" : pos === step ? "trk-current" : "trk-todo";
             return (
-              <div key={pos} className={`trk-step ${state}`}>
+              <div
+                key={pos}
+                className={`trk-step ${state}`}
+                style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+              >
                 <div className="trk-dot">
                   {pos < step ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -457,24 +406,6 @@ export default async function MaklonStatusPage({
           </div>
         </section>
       )}
-
-      <section className="mt-10">
-        <div className="trk-card p-6 text-center sm:p-7">
-          <p className="text-[14px] leading-relaxed text-[#A29086]">
-            Ada yang mau ditanyakan soal pesanan ini? CS kami siap bantu.
-          </p>
-          <div className="mt-5 flex justify-center">
-            <a
-              href={csHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-px hover:bg-[#F2762A] sm:w-auto"
-            >
-              Chat CS
-            </a>
-          </div>
-        </div>
-      </section>
     </Shell>
   );
 }

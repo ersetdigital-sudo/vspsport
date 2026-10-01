@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getBrand } from "@/lib/queries";
+import { loadStatusInitial } from "@/lib/status-server";
 import StatusClient from "./StatusClient";
 
 export const metadata: Metadata = {
@@ -8,18 +8,29 @@ export const metadata: Metadata = {
   description: "Pantau progres produksi pesanan jersey custom VSP Sport.",
 };
 
-// Identitas toko dibaca per request: nomor WhatsApp untuk tombol CS harus sama
-// dengan yang diisi di menu Pengaturan admin, termasuk di HTML pertama.
+// Selalu dirender ulang per request: token sesi di URL dan progres pesanannya
+// tidak boleh di-cache bersama.
 export const dynamic = "force-dynamic";
 
-export default async function StatusPage() {
-  const brand = await getBrand();
+/**
+ * Data order dibaca di server kalau URL membawa token sesi yang sah (lihat
+ * lib/status-server.ts), supaya progres pesanan sudah ada di HTML pertama.
+ * Tanpa token, `initial` = null dan halaman jalan lewat verifikasi HP seperti
+ * sebelumnya.
+ */
+export default async function StatusPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ order?: string; token?: string }>;
+}) {
+  const sp = await searchParams;
+  const orderNumber = (sp.order || "").toUpperCase();
+
+  const initial = await loadStatusInitial(orderNumber, sp.token || null);
 
   return (
     <Suspense fallback={null}>
-      <StatusClient
-        brand={{ name: brand.name, whatsapp_number: brand.whatsappNumber }}
-      />
+      <StatusClient initial={initial} />
     </Suspense>
   );
 }

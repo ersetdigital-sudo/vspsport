@@ -20,7 +20,10 @@ import {
   rememberProducts,
 } from "@/lib/product-options";
 import { waNote } from "@/lib/notif-note";
+import { pcsLabel } from "@/lib/utils";
+import type { PesananDashboardInitial } from "@/lib/pesanan-server";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import UploadIndicator from "@/components/admin/UploadIndicator";
 import { Search, AlertTriangle } from "lucide-react";
 
 type StepRow = { id: string; name: string; position: number };
@@ -416,10 +419,19 @@ function NavIcon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
-export default function PesananDashboard() {
+export default function PesananDashboard({
+  initial,
+}: {
+  /**
+   * Data yang sudah dibaca server (lihat lib/pesanan-server.ts). Kalau terisi,
+   * HTML pertama sudah berisi daftar pesanan — dulu tabelnya kosong sampai
+   * fetch pertama selesai.
+   */
+  initial?: PesananDashboardInitial | null;
+} = {}) {
   const router = useRouter();
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<OrderData[]>(initial?.orders ?? []);
+  const [loading, setLoading] = useState(!initial);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -439,7 +451,9 @@ export default function PesananDashboard() {
     [orders, openCustomerKey]
   );
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [steps, setSteps] = useState<StepRow[]>(DEFAULT_STEPS);
+  const [steps, setSteps] = useState<StepRow[]>(
+    initial?.steps?.length ? initial.steps : DEFAULT_STEPS
+  );
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -470,9 +484,12 @@ export default function PesananDashboard() {
   }, []);
 
   useEffect(() => {
+    // Sudah dirender server — jangan langsung ditimpa fetch ulang. Penyegaran
+    // sesudah aksi (simpan tahap, tambah order) tetap jalan lewat fetchOrders.
+    if (initial) return;
     fetchOrders();
     fetchSteps();
-  }, [fetchOrders, fetchSteps]);
+  }, [initial, fetchOrders, fetchSteps]);
 
   useEffect(() => {
     const h = window.location.hash.replace("#", "") as ViewKey;
@@ -823,6 +840,7 @@ export default function PesananDashboard() {
 
       {/* â”€â”€ TOAST â”€â”€ */}
       <div className={`pas-toast ${toast ? "on" : ""}`}>{toast}</div>
+      <UploadIndicator />
     </div>
   );
 }
@@ -1318,7 +1336,7 @@ function ViewPesanan({
                     <p className="text-[14px] font-medium truncate">{o.customer_name}</p>
                   </div>
                 </div>
-                <p className="text-[14px] font-semibold pas-num shrink-0 ml-3">{o.quantity} pcs</p>
+                <p className="text-[14px] font-semibold pas-num shrink-0 ml-3">{pcsLabel(o.quantity)}</p>
               </div>
 
               {/* Baris 3: Nama produk */}
@@ -1523,7 +1541,7 @@ function ViewJadwal({
                               <span className="pas-card-avatar">{ini}</span>
                               <span className="pas-card-id">{o.id}</span>
                             </div>
-                            <span className="pas-card-pcs">{o.quantity}</span>
+                            <span className="pas-card-pcs">{pcsLabel(o.quantity)}</span>
                           </div>
                           <div className="pas-card-body">
                             <p className="pas-card-customer">{o.customer_name}</p>
@@ -4008,7 +4026,7 @@ function DetailSheet({
               )}
               <div className="px-4 py-3 border-b border-r border-[var(--pas-line)]">
                 <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Jumlah</span>
-                <p className="mt-1 text-[14px] font-semibold">{order.quantity} pcs</p>
+                <p className="mt-1 text-[14px] font-semibold">{pcsLabel(order.quantity)}</p>
               </div>
               {step === 11 && (courier || resi) ? (
                 <div className="px-4 py-3 border-b border-[var(--pas-line)]">

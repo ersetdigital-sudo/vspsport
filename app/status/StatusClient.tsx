@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { waMeUrl } from "@/lib/wa";
 
 import {
   ORDER_STATUS_LABELS,
@@ -19,8 +18,10 @@ import {
   TOTAL_STAGES,
 } from "@/lib/order-status";
 import { formatShortDateTimeID } from "@/lib/format-date";
+import { formatTargetDate, formatDeadlineNote } from "@/lib/deadline";
 import { optimizeImageUrl } from "@/lib/cloudinary";
 import { resolveStepOrder, type StepOrder } from "@/lib/step-order";
+import type { StatusInitial } from "@/lib/status-server";
 
 const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 const SPIN_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/></svg>';
@@ -92,15 +93,19 @@ function stepHighlight(status: string, hasTracking: boolean): string {
 /**
  * Halaman status pesanan (client component).
  *
- * Identitas toko datang sebagai PROP dari server (`app/status/page.tsx` →
- * getBrand()), bukan dari state + fetch ke /api/brand. Jadi HTML pertama yang
- * dikirim ke customer sudah memuat nomor WhatsApp dari menu Pengaturan — tidak
- * ada lagi nomor cadangan yang tertulis di bundle.
+ * Sengaja TIDAK ada tombol "Hubungi CS"/WhatsApp di halaman ini: fungsinya
+ * murni melihat progres pesanan, dan kanal komunikasi sudah lewat pesan
+ * WhatsApp yang dikirim otomatis tiap tahap.
  */
 export default function StatusClient({
-  brand,
+  initial,
 }: {
-  brand: { name: string; whatsapp_number: string };
+  /**
+   * Data yang sudah dibaca server (lihat lib/status-server.ts) saat URL membawa
+   * token sesi yang sah. Kalau terisi, HTML pertama sudah berisi progres
+   * pesanan — dulu halaman kosong dulu sampai fetch pertama selesai.
+   */
+  initial?: StatusInitial | null;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -113,10 +118,12 @@ export default function StatusClient({
   const [verifying, setVerifying] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
 
-  const [order, setOrder] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [steps, setSteps] = useState<{ name: string; position: number }[]>([]);
+  const [order, setOrder] = useState<any>(initial?.order ?? null);
+  const [history, setHistory] = useState<any[]>(initial?.history ?? []);
+  const [loaded, setLoaded] = useState(Boolean(initial));
+  const [steps, setSteps] = useState<{ name: string; position: number }[]>(
+    initial?.steps ?? []
+  );
   const pctRef = useRef<HTMLDivElement>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [lbOpen, setLbOpen] = useState(false);
@@ -128,6 +135,9 @@ export default function StatusClient({
   // Fetch order data on mount — always try fresh from DB via session token
   useEffect(() => {
     if (!orderId) return;
+    // Sudah dirender server untuk pesanan ini — jangan ditimpa fetch ulang.
+    // Verifikasi HP / buka pesanan lain tetap jalan lewat alur di bawah.
+    if (initial && initial.order?.order_number === orderId) return;
     const key = `vsp_verified_${orderId}`;
     const tokenKey = `vsp_token_${orderId}`;
 
@@ -189,7 +199,7 @@ export default function StatusClient({
         sessionStorage.removeItem(key);
         setShowPhoneModal(true);
       });
-  }, [orderId, urlToken]);
+  }, [orderId, urlToken, initial]);
 
   // Animate progress counter
   useEffect(() => {
@@ -214,6 +224,8 @@ export default function StatusClient({
 
   // Fetch production steps from DB
   useEffect(() => {
+    // Sudah dikirim server bersama `initial` — tidak perlu fetch ulang.
+    if (initial?.steps?.length) return;
     fetch("/api/pesanan/steps")
       .then((r) => r.json())
       .then((d) => {
@@ -222,7 +234,7 @@ export default function StatusClient({
         }
       })
       .catch(() => {});
-  }, []);
+  }, [initial]);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -305,6 +317,7 @@ export default function StatusClient({
   if (!orderId) {
     return (
       <div className="trk-bg min-h-screen">
+        <div className="trk-aurora" aria-hidden="true" />
         <div className="trk-grid min-h-screen">
           <div className="trk-glow min-h-screen flex items-center justify-center px-5">
             <div className="text-center">
@@ -325,10 +338,11 @@ export default function StatusClient({
   if (!loaded) {
     return (
       <div className="trk-bg min-h-screen">
+        <div className="trk-aurora" aria-hidden="true" />
         <div className="trk-grid min-h-screen">
           <div className="trk-glow min-h-screen">
             {/* Header */}
-            <header className="sticky top-0 z-30 backdrop-blur-md bg-[rgba(10,10,11,.78)] border-b border-[#33261F]">
+            <header className="dpo-topbar sticky top-0 z-30 backdrop-blur-md bg-[rgba(10,10,11,.78)] border-b border-[#33261F]">
               <div className="max-w-3xl mx-auto px-5 sm:px-8 py-4 flex items-center gap-3">
                 <a
                   href="/track"
@@ -413,10 +427,6 @@ export default function StatusClient({
     (normalizedStatus === "kirim" || normalizedStatus === "selesai") && hasTracking;
   const pct = getProgress(step, hasTracking);
   const lastUpdate = history.length > 0 ? history[history.length - 1] : null;
-  const waLink = waMeUrl(
-    brand.whatsapp_number,
-    `Halo ${brand.name}, saya mau tanya order ${orderId}`
-  );
 
   // Product data (new structured format) with fallback to legacy fields
   const products: { name: string; sizes: { size: string; qty: number }[] }[] =
@@ -432,10 +442,11 @@ export default function StatusClient({
 
   return (
     <div className="trk-bg min-h-screen">
+      <div className="trk-aurora" aria-hidden="true" />
       <div className="trk-grid min-h-screen">
         <div className="trk-glow">
           {/* Header */}
-          <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[rgba(10,10,11,.72)] backdrop-blur-xl">
+          <header className="dpo-topbar sticky top-0 z-30 border-b border-white/[.07] bg-[rgba(10,10,11,.72)] backdrop-blur-xl">
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5">
               <div className="flex items-center gap-3">
 <a
@@ -456,18 +467,10 @@ export default function StatusClient({
                   <p className="text-[10.5px] text-[#7E6F66] sm:text-[11px]">Pabrik Jersey Custom Full Printing</p>
                 </div>
               </div>
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[.12] bg-white/5 px-4 py-2 text-[13px] font-medium text-[#A29086] hover:bg-white/10 hover:text-white transition"
-              >
-                Hubungi CS
-              </a>
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-3xl px-4 pb-28 sm:px-6 sm:pb-20">
+          <main className="mx-auto w-full max-w-3xl px-4 pb-20 sm:px-6">
 
             {/* HERO / STATUS */}
             <section className="dpo-reveal pt-7 sm:pt-12">
@@ -510,7 +513,13 @@ export default function StatusClient({
                 </span>
                 {order.deadline && (
                   <span className="dpo-meta">
-                    Target <span className="dpo-mono ml-1 text-[#EFE3DC]">{formatShortDateTimeID(order.deadline)}</span>
+                    Target{" "}
+                    <span className="dpo-mono ml-1 text-[#EFE3DC]">
+                      {formatTargetDate(order.deadline)}
+                    </span>
+                    {formatDeadlineNote(order.deadline) && (
+                      <span className="text-[#7E6F66]">· {formatDeadlineNote(order.deadline)}</span>
+                    )}
                   </span>
                 )}
               </div>
@@ -570,6 +579,7 @@ export default function StatusClient({
                     <li
                       key={stepDef.name}
                       className={`dpo-step ${st === "todo" ? "is-todo" : ""} ${st === "now" ? "is-now" : ""} ${n === totalSteps ? "is-last" : ""}`}
+                      style={{ animationDelay: `${Math.min(idx, 8) * 45}ms` }}
                     >
                       <span className={`dpo-dot ${st === "done" ? "done" : st === "now" ? "now" : ""}`}>
                         {st === "done" ? (
@@ -612,7 +622,7 @@ export default function StatusClient({
                                 key={di}
                                 type="button"
                                 onClick={() => setLightboxUrl(url)}
-                                className="group relative block overflow-hidden rounded-xl border border-white/10 bg-black"
+                                className="dpo-thumb group relative block border border-white/10"
                                 title="Klik untuk memperbesar"
                                 aria-label={`Perbesar preview desain ${di + 1}`}
                               >
@@ -796,42 +806,10 @@ export default function StatusClient({
               </section>
             )}
 
-            {/* CTA */}
-            <section className="dpo-card mt-8 p-6 sm:p-8 text-center">
-              <h2 className="dpo-h1 text-2xl sm:text-3xl">Ada yang mau ditanyakan?</h2>
-              <p className="mt-2 text-[14px] text-[#A29086]">Tim CS kami siap bantu, Senin–Sabtu 08.00–20.00 WIB.</p>
-              <div className="mt-5 flex justify-center">
-                <a
-                  href={waLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-[#F2762A] px-8 py-3.5 text-[15px] font-semibold text-white hover:bg-[#F2762A] transition hover:-translate-y-px"
-                >
-                  Chat CS via WhatsApp
-                </a>
-              </div>
-              <p className="mt-4 text-[12px] text-[#7E6F66]">Semua komunikasi order ditangani lewat WhatsApp resmi VSP Sport.</p>
-            </section>
-
             <footer className="mt-10 text-center text-[12px] text-[#7E6F66]">
               <p>© 2026 VSP Sport — Pabrik Jersey Custom Full Printing</p>
             </footer>
           </main>
-
-          {/* STICKY CTA MOBILE */}
-          <div className="dpo-stickycta">
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#F2762A] px-6 py-3.5 text-[15px] font-semibold text-white"
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 18, height: 18, flex: "none" }} aria-hidden="true">
-                <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.4-.2-2.7.7.7-2.6-.2-.4A8 8 0 0 1 12 4z"></path>
-              </svg>
-              Chat CS via WhatsApp
-            </a>
-          </div>
 
           {lightboxUrl && (
             <div

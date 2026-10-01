@@ -9,6 +9,9 @@ import {
   rememberProducts,
 } from "@/lib/product-options";
 import { waNote } from "@/lib/notif-note";
+import { pcsLabel } from "@/lib/utils";
+import type { MaklonDashboardInitial } from "@/lib/maklon-server";
+import UploadIndicator from "@/components/admin/UploadIndicator";
 import {
   formatDateTimeWIB,
   formatNumericDateID,
@@ -136,9 +139,18 @@ function NavIcon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
-export default function MaklonDashboard() {
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function MaklonDashboard({
+  initial,
+}: {
+  /**
+   * Data yang sudah dibaca server (lihat lib/maklon-server.ts). Kalau terisi,
+   * HTML pertama sudah berisi daftar maklon — dulu tabelnya kosong sampai
+   * fetch pertama selesai.
+   */
+  initial?: MaklonDashboardInitial | null;
+} = {}) {
+  const [orders, setOrders] = useState<OrderData[]>(initial?.orders ?? []);
+  const [loading, setLoading] = useState(!initial);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -148,7 +160,9 @@ export default function MaklonDashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [steps, setSteps] = useState<StepRow[]>(DEFAULT_STEPS);
+  const [steps, setSteps] = useState<StepRow[]>(
+    initial?.steps?.length ? initial.steps : DEFAULT_STEPS
+  );
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -179,9 +193,11 @@ export default function MaklonDashboard() {
   }, []);
 
   useEffect(() => {
+    // Sudah dirender server — jangan langsung ditimpa fetch ulang.
+    if (initial) return;
     fetchOrders();
     fetchSteps();
-  }, [fetchOrders, fetchSteps]);
+  }, [initial, fetchOrders, fetchSteps]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -519,7 +535,7 @@ export default function MaklonDashboard() {
                             <p className="text-[14px] font-medium truncate">{o.customer_name}</p>
                           </div>
                         </div>
-                        <p className="text-[14px] font-semibold pas-num shrink-0 ml-3">{o.quantity} pcs</p>
+                        <p className="text-[14px] font-semibold pas-num shrink-0 ml-3">{pcsLabel(o.quantity)}</p>
                       </div>
                       <p className="text-[13px] text-[var(--pas-muted)] mt-3">{o.product_name}</p>
                       <div className="mt-3">
@@ -623,6 +639,7 @@ export default function MaklonDashboard() {
       )}
 
       <div className={`pas-toast ${toast ? "on" : ""}`}>{toast}</div>
+      <UploadIndicator />
     </div>
   );
 }
@@ -1360,7 +1377,7 @@ function DetailSheet({
               )}
               <div className="px-4 py-3 border-b border-r border-[var(--pas-line)]">
                 <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Jumlah</span>
-                <p className="mt-1 text-[14px] font-semibold">{order.quantity} pcs</p>
+                <p className="mt-1 text-[14px] font-semibold">{pcsLabel(order.quantity)}</p>
               </div>
               <div className="px-4 py-3 border-b border-[var(--pas-line)]">
                 <span className="pas-stencil text-[9px] text-[var(--pas-muted)]">Ekspedisi / Resi</span>

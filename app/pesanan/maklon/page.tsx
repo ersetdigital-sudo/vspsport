@@ -1,4 +1,5 @@
 import MaklonDashboard from "@/components/admin/MaklonDashboard";
+import { loadMaklonDashboardInitial } from "@/lib/maklon-server";
 
 export const metadata = {
   // Lihat catatan di app/pesanan/orders/page.tsx soal title absolute.
@@ -6,6 +7,7 @@ export const metadata = {
   description: "Dashboard admin kelola pesanan maklon",
 };
 
-export default function MaklonPage() {
-  return <MaklonDashboard />;
+export default async function MaklonPage() {
+  const initial = await loadMaklonDashboardInitial();
+  return <MaklonDashboard initial={initial} />;
 }
